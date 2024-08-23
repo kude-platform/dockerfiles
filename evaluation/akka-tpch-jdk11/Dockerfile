@@ -1,4 +1,4 @@
-FROM maven:3.9.9-eclipse-temurin-11-alpine
+FROM arm64v8/maven:3-amazoncorretto-11-al2023
 
 RUN apk --no-cache add git unzip \
     && git clone https://github.com/kude-platform/template-projects-akka /tmp/template-projects-akka-build

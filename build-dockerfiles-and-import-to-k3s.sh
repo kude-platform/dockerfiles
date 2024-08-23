@@ -9,7 +9,7 @@ do
     fqi="registry.local/${name}:${version}"
     echo "Building ${fqi}"
 
-    docker build -q -t "${fqi}" "${dir}"
+    docker build -t "${fqi}" "${dir}"
 
     if command -v k3s &> /dev/null
     then
