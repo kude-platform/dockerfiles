@@ -6,5 +6,5 @@ do
     name=${dir##*/}
     version=$(cat ${dir}/version.txt)
     echo "Building ${name} in version ${version}"
-    docker build -t ${name}:${version} ${dir}
+    docker build -t registry.local/${name}:${version} ${dir}
 done
