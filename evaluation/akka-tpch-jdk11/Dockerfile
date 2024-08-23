@@ -1,4 +1,12 @@
-FROM arm64v8/maven:3-amazoncorretto-11-al2023
+FROM amazoncorretto:11-alpine
+
+RUN wget https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz
+RUN tar -xvf apache-maven-3.9.9-bin.tar.gz
+RUN mv apache-maven-3.9.9 /opt
+RUN rm apache-maven-3.9.9-bin.tar.gz
+
+ENV M2_HOME='/opt/apache-maven-3.9.9'
+ENV PATH="$M2_HOME/bin:$PATH"
 
 RUN apk --no-cache add git unzip \
     && git clone https://github.com/kude-platform/template-projects-akka /tmp/template-projects-akka-build
