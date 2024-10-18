@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo k3s ctr image list -q | grep registry.local | xargs sudo k3s ctr image del
+
 for dir in ./evaluation/*/
 do
     dir=${dir%*/}
