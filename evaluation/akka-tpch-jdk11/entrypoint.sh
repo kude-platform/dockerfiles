@@ -38,7 +38,7 @@ fi
 cp ./target/app.jar ./app.jar
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-  java -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME"
+  java -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" $ADDITIONAL_MASTER_ARGS
 else
-  java -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME"
+  java -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" $ADDITIONAL_WORKER_ARGS
 fi
