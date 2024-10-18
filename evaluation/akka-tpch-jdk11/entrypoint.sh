@@ -30,9 +30,9 @@ fi
 cd ./source
 
 if [ "$OFFLINE_MODE" = true ]; then
-  mvn -o install
+  mvn -o install $ADDITIONAL_MAVEN_ARGS
 else
-  mvn install
+  mvn install $ADDITIONAL_MAVEN_ARGS
 fi
 
 cp ./target/app.jar ./app.jar
