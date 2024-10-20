@@ -1,1 +1,1 @@
-0.0.7-test-network-speed
+0.0.8-test-network-speed
