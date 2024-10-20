@@ -37,8 +37,10 @@ fi
 
 cp ./target/app.jar ./app.jar
 
+IP_ADDRESS=$(ip route get 8.8.8.8 | head -1 | cut -d' ' -f8)
+
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" $ADDITIONAL_MASTER_ARGS
+  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ip $IP_ADDRESS $ADDITIONAL_MASTER_ARGS
 else
-  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" $ADDITIONAL_WORKER_ARGS
+  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ip $IP_ADDRESS $ADDITIONAL_WORKER_ARGS
 fi
