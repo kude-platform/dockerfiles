@@ -21,32 +21,24 @@ if [ -z "$GIT_URL" ]; then
   exit 1
 fi
 
-if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-  iperf -s -p 8081
-else
-  iperf -c "$JOB_NAME-0.$SVC_NAME" -p 8081 -t 60
+git clone "$GIT_URL" ./source
+
+if [ "$UNZIP_DATA" = true ]; then
+  unzip -o ./data/TPCH.zip -d ./source/data
 fi
 
-speedtest-cli --secure
+cd ./source
 
-# git clone "$GIT_URL" ./source
+if [ "$OFFLINE_MODE" = true ]; then
+  mvn -o install $ADDITIONAL_MAVEN_ARGS
+else
+  mvn install $ADDITIONAL_MAVEN_ARGS
+fi
 
-# if [ "$UNZIP_DATA" = true ]; then
-#   unzip -o ./data/TPCH.zip -d ./source/data
-# fi
+cp ./target/app.jar ./app.jar
 
-# cd ./source
-
-# if [ "$OFFLINE_MODE" = true ]; then
-#   mvn -o install $ADDITIONAL_MAVEN_ARGS
-# else
-#   mvn install $ADDITIONAL_MAVEN_ARGS
-# fi
-
-# cp ./target/app.jar ./app.jar
-
-# if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-#   java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" $ADDITIONAL_MASTER_ARGS
-# else
-#   java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" $ADDITIONAL_WORKER_ARGS
-# fi
+if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
+  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" $ADDITIONAL_MASTER_ARGS
+else
+  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" $ADDITIONAL_WORKER_ARGS
+fi
