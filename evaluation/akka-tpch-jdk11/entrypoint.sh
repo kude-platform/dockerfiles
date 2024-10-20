@@ -27,7 +27,7 @@ else
   iperf -c "$JOB_NAME-0.$SVC_NAME" -p 8081 -t 60
 fi
 
-speedtest-cli
+speedtest-cli --secure
 
 # git clone "$GIT_URL" ./source
 
