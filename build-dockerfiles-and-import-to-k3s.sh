@@ -1,8 +1,6 @@
 #!/bin/bash
 
-sudo k3s ctr image list -q | grep registry.local | xargs sudo k3s ctr image del
-
-for dir in ./evaluation/*/
+for dir in ./images/*/
 do
     dir=${dir%*/}
     name=${dir##*/}
@@ -10,6 +8,14 @@ do
 
     fqi="registry.local/${name}:${version}"
     echo "Building ${fqi}"
+
+    if k3s ctr image list -q | grep -q "${fqi}"
+    then
+      echo "Image ${fqi} already exists, skipping"
+      continue
+    fi
+
+    sudo k3s ctr image list -q | grep registry.local/${name} | xargs sudo k3s ctr image del
 
     docker build -t "${fqi}" "${dir}"
 
