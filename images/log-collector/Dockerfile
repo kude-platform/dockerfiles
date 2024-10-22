@@ -1,5 +1,10 @@
-FROM busybox:1.37
+### build stage ###
+FROM golang:1.14-alpine AS builder
+COPY log-collector.go .
+RUN go build -o server .
 
-WORKDIR /home/logs
-
-CMD ["busybox", "httpd", "-f", "-v", "-p", "3000"]
+### run stage ###
+FROM alpine:3.12
+COPY --from=builder /go/server ./server
+COPY index.html index.html
+CMD ["./server"]
