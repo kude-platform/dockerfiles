@@ -1,5 +1,5 @@
 ### build stage ###
-FROM golang:1.14-alpine AS builder
+FROM golang:1.22-alpine AS builder
 COPY log-analyzer.go .
 RUN go build -o server .
 
