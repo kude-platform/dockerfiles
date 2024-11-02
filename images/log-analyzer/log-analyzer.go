@@ -80,7 +80,7 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 
 	if len(errors) > 0 {
 		event := EvaluationEvent{
-			EvaluationId: logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-name"],
+			EvaluationId: logEntries[0].Kubernetes.Labels["evaluation-id"],
 			Index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
 			Errors:       errors,
 		}
