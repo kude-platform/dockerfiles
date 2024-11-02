@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -84,13 +85,14 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 			errors:       errors,
 		}
 		eventJson, err := json.Marshal(event)
+
 		if err != nil {
 			panic(err)
 		}
 
 		_, err = http.Post("http://"+os.Getenv("EVALUATION_SERVICE_HOST")+":"+os.Getenv(
 			"EVALUATION_SERVICE_PORT")+"/ingest/event",
-			"application/json", strings.NewReader(string(eventJson)))
+			"application/json", bytes.NewBuffer(eventJson))
 		if err != nil {
 			log.Printf("Failed to post event to evaluation service: %s", err)
 		}
