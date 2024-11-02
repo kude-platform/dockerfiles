@@ -1,9 +1,24 @@
 POST http://localhost:8082/ingest/logs
 Content-Type: application/json
 
-{
-  "test1": "teststring",
-    "test2": "teststring2"
-}
+[{"date":1730547081.923005,"time":"2024-11-02T12:31:21.92300537+01:00",
+  "stream":"stdout","_p":"F",
+  "log":"/ # \r/ # \u001b[J\r/ # \u001b[Jecho \"hello\"",
+  "kubernetes":{"pod_name":"ddm-akka","namespace_name":"default",
+    "pod_id":"78686c19-c8dd-47ad-a244-c4e263cefcaa",
+    "labels":{"run":"ddm-akka"},"host":"pi-master",
+    "container_name":"ddm-akka",
+    "docker_id":"7d8534acd61f98be4a1d317dfb263173e2645ede3356c7ca65743b90346dd287",
+    "container_hash":"docker.io/library/busybox@sha256:768e5c6f5cb6db0794eec98dc7a967f40631746c32232b78a3105fb946f3ab83",
+    "container_image":"docker.io/library/busybox:latest"}},
+  {"date":1730547081.929952,"time":"2024-11-02T12:31:21.929951752+01:00",
+    "stream":"stdout","_p":"F",
+    "log":"hello NPE",
+    "kubernetes":{"pod_name":"ddm-akka","namespace_name":"default",
+      "pod_id":"78686c19-c8dd-47ad-a244-c4e263cefcaa","labels":{"run":"ddm-akka"},
+      "host":"pi-master","container_name":"ddm-akka",
+      "docker_id":"7d8534acd61f98be4a1d317dfb263173e2645ede3356c7ca65743b90346dd287",
+      "container_hash":"docker.io/library/busybox@sha256:768e5c6f5cb6db0794eec98dc7a967f40631746c32232b78a3105fb946f3ab83",
+      "container_image":"docker.io/library/busybox:latest"}}]
 
 ###
