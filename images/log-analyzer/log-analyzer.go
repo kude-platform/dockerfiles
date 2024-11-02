@@ -50,6 +50,12 @@ var javaLogMessageErrorCategories = map[string][]string{
 	"CONNECTION_PROBLEM":                  {"ConnectException", "StreamTcpException"},
 }
 
+type EvaluationEvent struct {
+	EvaluationId string
+	Index        string
+	Errors       []string
+}
+
 func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -60,11 +66,33 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	var errors []string
 
 	for _, logEntry := range logEntries {
 		category, foundCategory := categorizeLog(logEntry.Log)
+
 		if foundCategory {
 			log.Printf("Categorized log message: %s as %s", logEntry.Log, category)
+			errors = append(errors, category)
+		}
+	}
+
+	if len(errors) > 0 {
+		event := EvaluationEvent{
+			EvaluationId: "kubernetes.labels[\"batch.kubernetes.io/job-name\"]",
+			Index:        "kubernetes.labels[\"batch.kubernetes.io/job-completion-index\"]",
+			Errors:       errors,
+		}
+		eventJson, err := json.Marshal(event)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = http.Post("http://"+os.Getenv("EVALUATION_SERVICE_HOST")+":"+os.Getenv(
+			"EVALUATION_SERVICE_PORT")+"/ingest/event",
+			"application/json", strings.NewReader(string(eventJson)))
+		if err != nil {
+			log.Printf("Failed to post event to evaluation service: %s", err)
 		}
 	}
 }
