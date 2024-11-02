@@ -1,0 +1,9 @@
+POST http://localhost:8082/ingest/logs
+Content-Type: application/json
+
+{
+  "test1": "teststring",
+    "test2": "teststring2"
+}
+
+###
