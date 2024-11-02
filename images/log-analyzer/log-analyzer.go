@@ -79,8 +79,8 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 
 	if len(errors) > 0 {
 		event := EvaluationEvent{
-			EvaluationId: "kubernetes.labels[\"batch.kubernetes.io/job-name\"]",
-			Index:        "kubernetes.labels[\"batch.kubernetes.io/job-completion-index\"]",
+			EvaluationId: logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-name"],
+			Index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
 			Errors:       errors,
 		}
 		eventJson, err := json.Marshal(event)
