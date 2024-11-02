@@ -52,9 +52,9 @@ var javaLogMessageErrorCategories = map[string][]string{
 }
 
 type EvaluationEvent struct {
-	evaluationId string
-	index        string
-	errors       []string
+	EvaluationId string   `json:"evaluationId"`
+	Index        string   `json:"index"`
+	Errors       []string `json:"errors"`
 }
 
 func ingestLogs(_ http.ResponseWriter, req *http.Request) {
@@ -80,9 +80,9 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 
 	if len(errors) > 0 {
 		event := EvaluationEvent{
-			evaluationId: logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-name"],
-			index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
-			errors:       errors,
+			EvaluationId: logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-name"],
+			Index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
+			Errors:       errors,
 		}
 		eventJson, err := json.Marshal(event)
 
