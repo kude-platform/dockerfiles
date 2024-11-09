@@ -45,7 +45,7 @@ cp ./target/app.jar ./app.jar
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS
   if [ -n "$RESULTS_ENDPOINT" ]; then
-    curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$JOB_NAME"
+    curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
   fi
 else
   java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS
