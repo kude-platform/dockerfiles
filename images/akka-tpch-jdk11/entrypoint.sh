@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #current directory in the container is /tmp/app
 
 if [ -z "$JOB_COMPLETION_INDEX" ]; then
@@ -35,18 +35,35 @@ fi
 cd ./source
 
 if [ "$OFFLINE_MODE" = true ]; then
-  mvn -o install $ADDITIONAL_MAVEN_ARGS
+  mvn -o install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log
 else
-  mvn install $ADDITIONAL_MAVEN_ARGS
+  mvn install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log
+fi
+
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+  curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+  echo "Maven build failed"
+  exit 1
 fi
 
 cp ./target/app.jar ./app.jar
 
+JAVA_EXIT_CODE=0
+
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS
+  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ | tee ./service.log
+  JAVA_EXIT_CODE=${PIPESTATUS[0]}
   if [ -n "$RESULTS_ENDPOINT" ]; then
-    curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
+    curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
   fi
 else
-  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS
+  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ | tee ./service.log
+  JAVA_EXIT_CODE=${PIPESTATUS[0]}
 fi
+
+zip logs.zip ./service.log ./mvn.log
+if [ -n "$LOGS_ENDPOINT" ]; then
+  curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+fi
+
+exit $JAVA_EXIT_CODE
