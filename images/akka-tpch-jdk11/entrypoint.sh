@@ -34,10 +34,12 @@ fi
 
 cd ./source
 
+echo "Building project, logs will be available at /tmp/app/mvn.log"
+
 if [ "$OFFLINE_MODE" = true ]; then
-  mvn -o install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log
+  mvn -o install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log >/dev/null
 else
-  mvn install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log
+  mvn install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log >/dev/null
 fi
 
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -50,14 +52,16 @@ cp ./target/app.jar ./app.jar
 
 JAVA_EXIT_CODE=0
 
+echo "Starting service, logs will be available at /tmp/app/service.log"
+
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ | tee ./service.log
+  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ | tee ./service.log >/dev/null
   JAVA_EXIT_CODE=${PIPESTATUS[0]}
   if [ -n "$RESULTS_ENDPOINT" ]; then
     curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
   fi
 else
-  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ | tee ./service.log
+  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ | tee ./service.log >/dev/null
   JAVA_EXIT_CODE=${PIPESTATUS[0]}
 fi
 
