@@ -35,7 +35,7 @@ fi
 cd ./source
 
 if [ "$APPLY_PATCH" = true ]; then
-  git apply ./akka-kubernetes-config.patch
+  git apply ./../akka-kubernetes-config.patch
 fi 
 
 echo "Building project, logs will be available at /tmp/app/mvn.log"
