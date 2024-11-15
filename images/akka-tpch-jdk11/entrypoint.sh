@@ -1,6 +1,29 @@
 #!/bin/bash
 #current directory in the container is /tmp/app
 
+function finish {
+    echo "Received signal, trying to publish logs and exit"
+    publishLogs
+    exit 0
+}
+
+function publishLogs {
+    if [ -f ./service.log ] && [ -f ./mvn.log ]; then
+        echo "publishing maven and service logs"
+        zip logs.zip ./service.log ./mvn.log
+        if [ -n "$LOGS_ENDPOINT" ]; then
+            curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+        fi
+    elif [ -f ./mvn.log ]; then
+        echo "publishing maven logs"
+        if [ -n "$LOGS_ENDPOINT" ]; then
+            curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+        fi
+    else 
+        echo "no logs to publish available"
+    fi    
+}
+
 if [ -z "$JOB_COMPLETION_INDEX" ]; then
   echo "JOB_COMPLETION_INDEX is not set"
   exit 1
@@ -25,6 +48,8 @@ if [ -z "$POD_IP" ]; then
   echo "POD_IP is not set"
   exit 1
 fi
+
+trap finish SIGHUP SIGINT SIGQUIT SIGTERM
 
 git clone "$GIT_URL" ./source
 
@@ -69,9 +94,6 @@ else
   JAVA_EXIT_CODE=${PIPESTATUS[0]}
 fi
 
-zip logs.zip ./service.log ./mvn.log
-if [ -n "$LOGS_ENDPOINT" ]; then
-  curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
-fi
+publishLogs
 
 exit $JAVA_EXIT_CODE
