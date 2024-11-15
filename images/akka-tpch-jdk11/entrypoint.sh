@@ -1,5 +1,36 @@
 #!/bin/bash
 #current directory in the container is /tmp/app
+pidOfCurrentProcess=0
+
+function finish {
+    echo "Received signal, trying to publish logs and exit"
+    publishLogs
+    if [ $pidOfCurrentProcess -ne 0 ]; then
+        echo "Killing process $pidOfCurrentProcess"
+        kill -SIGTERM $pidOfCurrentProcess
+        wait $pidOfCurrentProcess
+    fi
+    exit 0
+}
+
+function publishLogs {
+    if [ -f ./service.log ] && [ -f ./mvn.log ]; then
+        echo "publishing maven and service logs"
+        zip logs.zip ./service.log ./mvn.log
+        if [ -n "$LOGS_ENDPOINT" ]; then
+            curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+        fi
+    elif [ -f ./mvn.log ]; then
+        echo "publishing maven logs"
+        if [ -n "$LOGS_ENDPOINT" ]; then
+            curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+        fi
+    else 
+        echo "no logs to publish available"
+    fi    
+}
+
+trap finish SIGHUP SIGINT SIGQUIT SIGTERM
 
 if [ -z "$JOB_COMPLETION_INDEX" ]; then
   echo "JOB_COMPLETION_INDEX is not set"
@@ -41,12 +72,16 @@ fi
 echo "Building project, logs will be available at /tmp/app/mvn.log"
 
 if [ "$OFFLINE_MODE" = true ]; then
-  mvn -o install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log >/dev/null
+  mvn -o install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
 else
-  mvn install $ADDITIONAL_MAVEN_ARGS $@ | tee ./mvn.log >/dev/null
+  mvn install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
 fi
 
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+pidOfCurrentProcess=$!
+echo "Maven install pid is $pidOfCurrentProcess"
+wait "$pidOfCurrentProcess"
+
+if [ $? -ne 0 ]; then
   curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
   echo "Maven build failed"
   exit 1
@@ -59,14 +94,18 @@ JAVA_EXIT_CODE=0
 echo "Starting service, logs will be available at /tmp/app/service.log"
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ | tee ./service.log >/dev/null
-  JAVA_EXIT_CODE=${PIPESTATUS[0]}
-  if [ -n "$RESULTS_ENDPOINT" ]; then
-    curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
-  fi
+  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ &> ./service.log &
 else
-  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ | tee ./service.log >/dev/null
-  JAVA_EXIT_CODE=${PIPESTATUS[0]}
+  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ &> ./service.log &
+fi
+
+pidOfCurrentProcess=$!
+echo "Java run pid is $pidOfCurrentProcess"
+wait "$pidOfCurrentProcess"
+JAVA_EXIT_CODE=$?
+
+if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
+  curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
 fi
 
 zip logs.zip ./service.log ./mvn.log
