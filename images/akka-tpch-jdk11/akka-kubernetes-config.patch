@@ -1,3 +1,15 @@
+diff --git a/pom.xml b/pom.xml
+index c9c493c..471b3e8 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -126,6 +126,7 @@
+ 							<goal>shade</goal>
+ 						</goals>
+ 						<configuration>
++							<finalName>app</finalName>
+ 							<transformers>
+ 								<transformer
+ 									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
 index 5592a53..06b25cc 100644
 --- a/src/main/java/de/ddm/Main.java
