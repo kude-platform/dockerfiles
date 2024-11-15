@@ -20,6 +20,8 @@ WORKDIR /tmp/app
 RUN mkdir -p ./data
 COPY data/TPCH.zip ./data/TPCH.zip
 
+COPY ./akka-kubernetes-config.patch .
+
 COPY ./entrypoint.sh .
 RUN chmod +x ./entrypoint.sh
 

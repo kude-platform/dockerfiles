@@ -1,0 +1,113 @@
+diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
+index 5592a53..06b25cc 100644
+--- a/src/main/java/de/ddm/Main.java
++++ b/src/main/java/de/ddm/Main.java
+@@ -23,9 +23,10 @@ public class Main {
+ 
+ 			guardian.tell(new Guardian.StartMessage());
+ 
+-			waitForInput(">>> Press ENTER to exit <<<");
+-
+-			guardian.tell(new Guardian.ShutdownMessage());
++			if (!config.isRunningInKubernetes()) {
++				waitForInput(">>> Press ENTER to exit <<<");
++				guardian.tell(new Guardian.ShutdownMessage());
++			}
+ 		}
+ 	}
+ 
+diff --git a/src/main/java/de/ddm/configuration/Command.java b/src/main/java/de/ddm/configuration/Command.java
+index 61585ef..18f9deb 100644
+--- a/src/main/java/de/ddm/configuration/Command.java
++++ b/src/main/java/de/ddm/configuration/Command.java
+@@ -13,9 +13,15 @@ public abstract class Command {
+ 	@Parameter(names = {"-h", "--host"}, description = "This machine's host name or IP that we use to bind this application against", required = false)
+ 	String host = SystemConfigurationSingleton.get().getHost();
+ 
++	@Parameter(names = {"-ia", "--ipAddress"}, description = "This machine's IP that we use to bind this application against", required = false)
++	String ipAddress = SystemConfigurationSingleton.get().getIpAddress();
++
+ 	@Parameter(names = {"-p", "--port"}, description = "This machines port that we use to bind this application against", required = false)
+ 	int port = this.getDefaultPort();
+ 
++	@Parameter(names = {"-kb", "--runningInKubernetes"}, description = "The application is running in Kubernetes", required = false, arity = 1)
++	boolean runningInKubernetes = SystemConfigurationSingleton.get().isRunningInKubernetes();
++
+ 	@Parameter(names = {"-w", "--numWorkers"}, description = "The number of workers (indexers/validators) to start locally; should be at least one if the algorithm is started standalone (otherwise there are no workers to run the discovery)", required = false)
+ 	int numWorkers = SystemConfigurationSingleton.get().getNumWorkers();
+ 
+diff --git a/src/main/java/de/ddm/configuration/SystemConfiguration.java b/src/main/java/de/ddm/configuration/SystemConfiguration.java
+index c41e726..f00acc1 100644
+--- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
++++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
+@@ -24,6 +24,8 @@ public class SystemConfiguration {
+ 	private String masterHost = getDefaultHost();      // The host name or IP of the master; if this is a master, masterHost = host
+ 	private int masterPort = DEFAULT_MASTER_PORT;      // The port of the master; if this is a master, masterPort = port
+ 
++	private String ipAddress = getDefaultHost();            // The IP address of this machine
++
+ 	private String actorSystemName = "ddm";            // The name of this application
+ 
+ 	private int numWorkers = 1;                        // The number of workers to start locally; should be at least one if the algorithm is started standalone (otherwise there are no workers to run the application)
+@@ -32,6 +34,8 @@ public class SystemConfiguration {
+ 
+ 	private boolean hardMode = false;					// Solve the hard version of the task
+ 
++	private boolean runningInKubernetes = false;        // The application is running in Kubernetes
++
+ 	private static String getDefaultHost() {
+ 		try {
+ 			return InetAddress.getLocalHost().getHostAddress();
+@@ -44,36 +48,45 @@ public class SystemConfiguration {
+ 		this.role = MASTER_ROLE;
+ 		this.host = commandMaster.host;
+ 		this.port = commandMaster.port;
++		this.ipAddress = commandMaster.ipAddress;
+ 		this.masterHost = commandMaster.host;
+ 		this.masterPort = commandMaster.port;
+ 		this.numWorkers = commandMaster.numWorkers;
+ 		this.startPaused = commandMaster.startPaused;
+ 		this.hardMode = commandMaster.hardMode;
++		this.runningInKubernetes = commandMaster.runningInKubernetes;
+ 	}
+ 
+ 	public void update(CommandWorker commandWorker) {
+ 		this.role = WORKER_ROLE;
+ 		this.host = commandWorker.host;
+ 		this.port = commandWorker.port;
++		this.ipAddress = commandWorker.ipAddress;
+ 		this.masterHost = commandWorker.masterhost;
+ 		this.masterPort = commandWorker.masterport;
+ 		this.numWorkers = commandWorker.numWorkers;
++		this.runningInKubernetes = commandWorker.runningInKubernetes;
+ 	}
+ 
+ 	public Config toAkkaConfig() {
+ 		return ConfigFactory.parseString("" +
+-				"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
+-				"akka.remote.artery.canonical.port = " + this.port + "\n" +
+-				"akka.cluster.roles = [" + this.role + "]\n" +
+-				"akka.cluster.seed-nodes = [\"akka://" + this.actorSystemName + "@" + this.masterHost + ":" + this.masterPort + "\"]")
++						"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
++						"akka.remote.artery.canonical.port = " + this.port + "\n" +
++						(this.runningInKubernetes ?
++								"akka.remote.artery.bind.hostname = \"" + this.ipAddress + "\"\n" +
++										"akka.remote.artery.bind.port = " + this.port + "\n" +
++										"akka.coordinated-shutdown.exit-jvm = on\n" : "" ) +
++						"akka.cluster.roles = [" + this.role + "]\n" +
++						"akka.cluster.seed-nodes = [\"akka://" + this.actorSystemName + "@" + this.masterHost + ":" + this.masterPort + "\"]")
+ 				.withFallback(ConfigFactory.load("application"));
+ 	}
+ 
+ 	public Config toAkkaTestConfig() {
+ 		return ConfigFactory.parseString("" +
+-				"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
+-				"akka.remote.artery.canonical.port = " + this.port + "\n" +
+-				"akka.cluster.roles = [" + this.role + "]")
++						"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
++						"akka.remote.artery.canonical.port = " + this.port + "\n" +
++						"akka.coordinated-shutdown.exit-jvm = off\n" +
++						"akka.cluster.roles = [" + this.role + "]")
+ 				.withFallback(ConfigFactory.load("application"));
+ 	}
+ }
