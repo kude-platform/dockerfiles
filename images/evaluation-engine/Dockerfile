@@ -3,11 +3,9 @@ FROM amazoncorretto:21-alpine
 RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/ nodejs
 RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community/ npm
 
-RUN apk --no-cache add git curl bash \
+# gcompbat contains libresolv.so.2 which is required for helm which is used in the evaluation-engine
+RUN apk --no-cache add git gcompat \
     && git clone https://github.com/kude-platform/evaluation-engine /tmp/evaluation-engine
-
-ENV VERIFY_CHECKSUM=false
-RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 WORKDIR /tmp/evaluation-engine
 RUN ./gradlew clean build -Pvaadin.productionMode -x test
