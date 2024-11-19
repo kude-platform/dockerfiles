@@ -10,7 +10,7 @@ RUN ./gradlew clean build -Pvaadin.productionMode -x test
 
 FROM amazoncorretto:21-alpine
 RUN apk --no-cache add curl bash 
-RUN export VERIFY_CHECKSUM=false
+ENV VERIFY_CHECKSUM=false
 RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 EXPOSE 8080
 WORKDIR /opt/app
