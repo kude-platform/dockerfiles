@@ -1,4 +1,4 @@
-FROM openjdk:21-jdk-slim AS build
+FROM openjdk:21-jdk AS build
 
 RUN microdnf install git \
     && git clone https://github.com/kude-platform/evaluation-engine /tmp/evaluation-engine
