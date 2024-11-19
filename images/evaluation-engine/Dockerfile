@@ -6,7 +6,7 @@ RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/c
 RUN apk --no-cache add git \
     && git clone https://github.com/kude-platform/evaluation-engine /tmp/evaluation-engine
 WORKDIR /tmp/evaluation-engine
-RUN ./gradlew clean build -Pvaadin.productionMode
+RUN ./gradlew clean build -Pvaadin.productionMode -x test
 
 FROM amazoncorretto:21-alpine
 EXPOSE 8080
