@@ -1,5 +1,8 @@
 FROM amazoncorretto:21-alpine AS build
 
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main/ nodejs
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community/ npm
+
 RUN apk --no-cache add git \
     && git clone https://github.com/kude-platform/evaluation-engine /tmp/evaluation-engine
 WORKDIR /tmp/evaluation-engine
