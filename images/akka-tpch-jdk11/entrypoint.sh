@@ -30,6 +30,12 @@ function publishLogs {
     fi    
 }
 
+function publishEvents {
+    echo "Publishing event $1"
+    curl -X POST -H "Content-Type: application/json" -d \
+    '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"]}' "$EVENT_INGESTION_ENDPOINT"; \
+}
+
 trap finish SIGHUP SIGINT SIGQUIT SIGTERM
 
 if [ -z "$JOB_COMPLETION_INDEX" ]; then
@@ -84,6 +90,7 @@ wait "$pidOfCurrentProcess"
 if [ $? -ne 0 ]; then
   curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
   echo "Maven build failed"
+  publishEvents "MVN_BUILD_FAILED"
   exit 1
 fi
 
@@ -94,8 +101,10 @@ JAVA_EXIT_CODE=0
 echo "Starting service, logs will be available at /tmp/app/service.log"
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
+  publishEvents "STARTING_MASTER"
   java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ &> ./service.log &
 else
+  publishEvents "STARTING_WORKER"
   java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ &> ./service.log &
 fi
 
@@ -112,5 +121,7 @@ zip logs.zip ./service.log ./mvn.log
 if [ -n "$LOGS_ENDPOINT" ]; then
   curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
 fi
+
+publishEvents "JOB_COMPLETED"
 
 exit $JAVA_EXIT_CODE
