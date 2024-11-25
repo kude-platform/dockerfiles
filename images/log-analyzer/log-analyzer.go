@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -57,6 +58,27 @@ type EvaluationEvent struct {
 	Errors       []string `json:"errors"`
 }
 
+func ingestLogFiles(_ http.ResponseWriter, req *http.Request) {
+	file, _, err := req.FormFile("file")
+	if err != nil {
+		panic(err)
+	}
+
+	evaluationId := req.URL.Query().Get("evaluationId")
+	index := req.URL.Query().Get("index")
+
+	scanner := bufio.NewScanner(file)
+	var logEntries []LogEntry
+	for scanner.Scan() {
+		logEntries = append(logEntries, LogEntry{Log: scanner.Text(),
+			Kubernetes: Kubernetes{Labels: map[string]string{"evaluation-id": evaluationId,
+				"batch.kubernetes.io/job-completion-index": index}},
+		})
+	}
+
+	analyzeLogEntries(logEntries)
+}
+
 func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -67,6 +89,10 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	analyzeLogEntries(logEntries)
+}
+
+func analyzeLogEntries(logEntries []LogEntry) {
 	var errors []string
 
 	for _, logEntry := range logEntries {
@@ -85,6 +111,9 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 			Errors:       errors,
 		}
 		eventJson, err := json.Marshal(event)
+
+		// print the event to the console
+		log.Printf("Event: %s", eventJson)
 
 		if err != nil {
 			panic(err)
@@ -112,5 +141,6 @@ func categorizeLog(log string) (response string, foundCategory bool) {
 
 func main() {
 	http.HandleFunc("/ingest/logs", ingestLogs)
+	http.HandleFunc("/ingest/logfiles", ingestLogFiles)
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("SERVER_PORT"), nil))
 }

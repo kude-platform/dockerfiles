@@ -1,0 +1,15 @@
+###
+
+# curl -i -X POST -H "Content-Type: multipart/form-data"
+#-F "data=@logs.log" http://localhost:8082/ingest/logfiles?evaluationId=1&index=0
+POST http://localhost:8082/ingest/logfiles?evaluationId=1&index=0
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="logs.log"
+
+< logs.log
+--WebAppBoundary--
+
+###
+

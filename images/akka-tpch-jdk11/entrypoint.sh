@@ -122,6 +122,10 @@ if [ -n "$LOGS_ENDPOINT" ]; then
   curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
 fi
 
+if [ -n "$LOG_ANALYZER_ENDPOINT" ]; then
+  curl -X POST -F "file=@./service.log" "$LOG_ANALYZER_ENDPOINT?evaluationId=$EVALUATION_ID&index=$JOB_COMPLETION_INDEX"
+fi
+
 publishEvents "JOB_COMPLETED"
 
 exit $JAVA_EXIT_CODE
