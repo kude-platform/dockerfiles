@@ -98,6 +98,16 @@ cp ./target/app.jar ./app.jar
 
 JAVA_EXIT_CODE=0
 
+if [ "$LOG_TO_CONSOLE" = true ]; then
+  if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
+    java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS
+  else
+    java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS 
+  fi
+
+  exit $?
+fi
+
 echo "Starting service, logs will be available at /tmp/app/service.log"
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then

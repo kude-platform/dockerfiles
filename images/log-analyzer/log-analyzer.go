@@ -49,7 +49,7 @@ var javaLogMessageErrorCategories = map[string][]string{
 	"NULL_POINTER_EXCEPTION":              {"NullPointerException", "NPE"},
 	"ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION": {"ArrayIndexOutOfBoundsException", "ArrayIndexOutOfBounds"},
 	"CLASS_CAST_EXCEPTION":                {"ClassCastException", "ClassCast"},
-	"CONNECTION_PROBLEM":                  {"ConnectException", "StreamTcpException"},
+	"CONNECTION_PROBLEM":                  {"ConnectException", "StreamTcpException", "Couldn't join seed nodes"},
 	"OUT_OF_MEMORY":                       {"OutOfMemoryError"},
 }
 
