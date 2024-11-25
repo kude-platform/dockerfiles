@@ -50,6 +50,7 @@ var javaLogMessageErrorCategories = map[string][]string{
 	"ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION": {"ArrayIndexOutOfBoundsException", "ArrayIndexOutOfBounds"},
 	"CLASS_CAST_EXCEPTION":                {"ClassCastException", "ClassCast"},
 	"CONNECTION_PROBLEM":                  {"ConnectException", "StreamTcpException"},
+	"OUT_OF_MEMORY":                       {"OutOfMemoryError"},
 }
 
 type EvaluationEvent struct {
