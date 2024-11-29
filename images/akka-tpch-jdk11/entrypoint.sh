@@ -65,11 +65,26 @@ fi
 
 git clone "$GIT_URL" ./source
 
-if [ "$UNZIP_DATA" = true ]; then
-  unzip -o ./data/TPCH.zip -d ./source/data
+pom_path=/tmp/app/source/pom.xml
+
+if [ ! -f ./source/pom.xml ]; then
+    publishEvents "POM_NOT_IN_ROOT"
+    echo "pom.xml not found in the root directory of the project. Trying to find it in the subdirectories"
+    pom_path=$(find . -name pom.xml -type f -print -quit)
+
+    if [ -z "$pom_path" ]; then
+        publishEvents "POM_NOT_FOUND"
+        echo "pom.xml not found in the project"
+        exit 1
+    fi
 fi
 
-cd ./source
+pom_directory=$(dirname "$pom_path")
+cd "$pom_directory"
+
+if [ "$UNZIP_DATA" = true ]; then
+  unzip -o /tmp/app/data/TPCH.zip -d ./data
+fi
 
 if [ "$APPLY_PATCH" = true ]; then
   git apply --reject --ignore-space-change --ignore-whitespace ./../akka-kubernetes-config.patch
