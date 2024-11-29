@@ -87,7 +87,7 @@ if [ "$UNZIP_DATA" = true ]; then
 fi
 
 if [ "$APPLY_PATCH" = true ]; then
-  git apply --reject --ignore-space-change --ignore-whitespace ./../akka-kubernetes-config.patch
+  git apply --reject --ignore-space-change --ignore-whitespace /tmp/app/akka-kubernetes-config.patch
 fi 
 
 echo "Building project, logs will be available at /tmp/app/mvn.log"
@@ -127,7 +127,7 @@ if [ "$LOG_TO_CONSOLE" = true ]; then
   exit $?
 fi
 
-echo "Starting service, logs will be available at /tmp/app/service.log"
+echo "Starting service, logs will be available in service.log"
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   publishEvents "STARTING_MASTER"
