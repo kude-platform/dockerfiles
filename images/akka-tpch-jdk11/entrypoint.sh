@@ -80,7 +80,12 @@ if [ ! -f ./source/pom.xml ]; then
 fi
 
 pom_directory=$(dirname "$pom_path")
-cd "$pom_directory"
+
+if [ "$pom_directory" != "/tmp/app/source" ]; then
+    cp -r "$pom_directory"/* /tmp/app/source
+fi
+
+cd /tmp/app/source
 
 if [ "$UNZIP_DATA" = true ]; then
   unzip -o /tmp/app/data/TPCH.zip -d ./data
