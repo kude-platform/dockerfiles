@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 /*
@@ -45,13 +46,13 @@ type Kubernetes struct {
 	Labels map[string]string
 }
 
-var javaLogMessageErrorCategories = map[string][]string{
-	"NULL_POINTER_EXCEPTION":              {"NullPointerException", "NPE"},
-	"ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION": {"ArrayIndexOutOfBoundsException", "ArrayIndexOutOfBounds"},
-	"CLASS_CAST_EXCEPTION":                {"ClassCastException", "ClassCast"},
-	"CONNECTION_PROBLEM":                  {"ConnectException", "StreamTcpException", "Couldn't join seed nodes"},
-	"OUT_OF_MEMORY":                       {"OutOfMemoryError"},
+type ErrorEventDefinition struct {
+	Category      string   `json:"category"`
+	ErrorPatterns []string `json:"errorPatterns"`
+	Fatal         bool     `json:"fatal"`
 }
+
+var errorEventDefinitions []ErrorEventDefinition
 
 type EvaluationEvent struct {
 	EvaluationId string   `json:"evaluationId"`
@@ -130,18 +131,52 @@ func analyzeLogEntries(logEntries []LogEntry) {
 }
 
 func categorizeLog(log string) (response string, foundCategory bool) {
-	for category, keywords := range javaLogMessageErrorCategories {
-		for _, keyword := range keywords {
+	for errorEventDefinition := range errorEventDefinitions {
+		for _, keyword := range errorEventDefinitions[errorEventDefinition].ErrorPatterns {
 			if strings.Contains(log, keyword) {
-				return category, true
+				return errorEventDefinitions[errorEventDefinition].Category, true
 			}
 		}
 	}
 	return "", false
 }
 
+func updateLogMessageErrorCategories() {
+	// get the latest categories from the evaluation service
+	resp, err := http.Get("http://" + os.Getenv("EVALUATION_SERVICE_HOST") + ":" + os.Getenv(
+		"EVALUATION_SERVICE_PORT") + "/api/errorEventDefinition")
+
+	if err != nil {
+		log.Printf("Failed to get categories from evaluation service: %s", err)
+		return
+	}
+
+	responseBody, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Printf("Failed to read response body from evaluation service: %s", err)
+		return
+	}
+
+	err = json.Unmarshal(responseBody, &errorEventDefinitions)
+
+	if err != nil {
+		log.Printf("Failed to unmarshal error event definitions: %s", err)
+		return
+	}
+
+	log.Printf("Updated log message error categories: %s", errorEventDefinitions)
+}
+
 func main() {
 	http.HandleFunc("/ingest/logs", ingestLogs)
 	http.HandleFunc("/ingest/logfiles", ingestLogFiles)
+
+	go func() {
+		for range time.Tick(time.Second * 30) {
+			updateLogMessageErrorCategories()
+		}
+	}()
+
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("SERVER_PORT"), nil))
 }
