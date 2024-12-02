@@ -10,7 +10,7 @@ FROM bitnami/java:21-debian-12
 COPY --from=builder /tmp/evaluation-engine/build/libs/app.jar ./app.jar
 RUN mkdir -p ./helm/ddm-akka
 
-COPY --from=builder /tmp/evaluation-engine/helm/ddm-akka /helm/ddm-akka
+COPY --from=builder /tmp/evaluation-engine/helm/ddm-akka ./helm/ddm-akka
 
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
