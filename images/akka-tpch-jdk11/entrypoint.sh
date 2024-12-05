@@ -4,14 +4,14 @@ pidOfCurrentProcess=0
 
 function finish {
     echo "Received signal, trying to publish logs, results, and exit"
-    publishLogs
-    if [ -n "$RESULTS_ENDPOINT" ]; then
-      curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
-    fi
     if [ $pidOfCurrentProcess -ne 0 ]; then
         echo "Killing process $pidOfCurrentProcess"
         kill -SIGTERM $pidOfCurrentProcess
         wait $pidOfCurrentProcess
+    fi
+    publishLogs
+    if [ -n "$RESULTS_ENDPOINT" ]; then
+      curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
     exit 0
 }
