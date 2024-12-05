@@ -49,7 +49,7 @@ index 61585ef..18f9deb 100644
  	int numWorkers = SystemConfigurationSingleton.get().getNumWorkers();
  
 diff --git a/src/main/java/de/ddm/configuration/SystemConfiguration.java b/src/main/java/de/ddm/configuration/SystemConfiguration.java
-index c41e726..f00acc1 100644
+index c41e726..d33441f 100644
 --- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
 +++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
 @@ -24,6 +24,8 @@ public class SystemConfiguration {
@@ -70,7 +70,7 @@ index c41e726..f00acc1 100644
  	private static String getDefaultHost() {
  		try {
  			return InetAddress.getLocalHost().getHostAddress();
-@@ -44,36 +48,45 @@ public class SystemConfiguration {
+@@ -44,36 +48,44 @@ public class SystemConfiguration {
  		this.role = MASTER_ROLE;
  		this.host = commandMaster.host;
  		this.port = commandMaster.port;
@@ -104,8 +104,7 @@ index c41e726..f00acc1 100644
 +						"akka.remote.artery.canonical.port = " + this.port + "\n" +
 +						(this.runningInKubernetes ?
 +								"akka.remote.artery.bind.hostname = \"" + this.ipAddress + "\"\n" +
-+										"akka.remote.artery.bind.port = " + this.port + "\n" +
-+										"akka.coordinated-shutdown.exit-jvm = on\n" : "" ) +
++										"akka.remote.artery.bind.port = " + this.port + "\n" : "" ) +
 +						"akka.cluster.roles = [" + this.role + "]\n" +
 +						"akka.cluster.seed-nodes = [\"akka://" + this.actorSystemName + "@" + this.masterHost + ":" + this.masterPort + "\"]")
  				.withFallback(ConfigFactory.load("application"));
