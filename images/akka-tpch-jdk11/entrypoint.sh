@@ -133,7 +133,11 @@ if [ "$LOG_TO_CONSOLE" = true ]; then
       curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
   else
-    java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS
+    java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS &
+  
+    pidOfCurrentProcess=$!
+    echo "Java run pid is $pidOfCurrentProcess"
+    wait "$pidOfCurrentProcess"
   fi
 
   exit $?
