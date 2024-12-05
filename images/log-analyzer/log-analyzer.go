@@ -114,6 +114,7 @@ func analyzeLogEntries(logEntries []LogEntry) {
 			EvaluationId: logEntries[0].Kubernetes.Labels["evaluation-id"],
 			Index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
 			Errors:       errors,
+			ErrorObjects: errorObjects,
 		}
 		eventJson, err := json.Marshal(event)
 
