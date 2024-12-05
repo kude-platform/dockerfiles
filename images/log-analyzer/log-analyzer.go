@@ -55,9 +55,10 @@ type ErrorEventDefinition struct {
 var errorEventDefinitions []ErrorEventDefinition
 
 type EvaluationEvent struct {
-	EvaluationId string   `json:"evaluationId"`
-	Index        string   `json:"index"`
-	Errors       []string `json:"errors"`
+	EvaluationId string                 `json:"evaluationId"`
+	Index        string                 `json:"index"`
+	Errors       []string               `json:"errors"`
+	ErrorObjects []ErrorEventDefinition `json:"errorObjects"`
 }
 
 func ingestLogFiles(_ http.ResponseWriter, req *http.Request) {
@@ -96,13 +97,15 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 
 func analyzeLogEntries(logEntries []LogEntry) {
 	var errors []string
+	var errorObjects []ErrorEventDefinition
 
 	for _, logEntry := range logEntries {
-		category, foundCategory := categorizeLog(logEntry.Log)
+		errorEventDefinition, foundCategory := categorizeLog(logEntry.Log)
 
 		if foundCategory {
-			log.Printf("Categorized log message: %s as %s", logEntry.Log, category)
-			errors = append(errors, category)
+			log.Printf("Categorized log message: %s as %s", logEntry.Log, errorEventDefinition)
+			errors = append(errors, errorEventDefinition.Category)
+			errorObjects = append(errorObjects, errorEventDefinition)
 		}
 	}
 
@@ -130,15 +133,15 @@ func analyzeLogEntries(logEntries []LogEntry) {
 	}
 }
 
-func categorizeLog(log string) (response string, foundCategory bool) {
+func categorizeLog(log string) (response ErrorEventDefinition, foundCategory bool) {
 	for errorEventDefinition := range errorEventDefinitions {
 		for _, keyword := range errorEventDefinitions[errorEventDefinition].ErrorPatterns {
 			if strings.Contains(log, keyword) {
-				return errorEventDefinitions[errorEventDefinition].Category, true
+				return errorEventDefinitions[errorEventDefinition], true
 			}
 		}
 	}
-	return "", false
+	return ErrorEventDefinition{}, false
 }
 
 func updateLogMessageErrorCategories() {
