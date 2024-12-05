@@ -94,6 +94,16 @@ if [ "$UNZIP_DATA" = true ]; then
   unzip -o /tmp/app/data/TPCH.zip -d ./data
 fi
 
+if [ -n "$REMOVE_LINES_IN_FILES" ] && [ -n "$REMOVE_AMOUNT_IN_PERCENT" ]; then
+  for file in $(echo $REMOVE_LINES_IN_FILES | tr "," "\n")
+  do
+    amountOfLines=$(wc -l < $file)
+    amountOfLinesToKeep=$(echo "scale=0; $amountOfLines * (100 - $REMOVE_AMOUNT_IN_PERCENT) / 100" | bc)
+    head -n $amountOfLinesToKeep $file > $file.tmp
+    mv $file.tmp $file
+  done
+fi
+
 if [ "$APPLY_PATCH" = true ]; then
   git apply --reject --ignore-space-change --ignore-whitespace /tmp/app/akka-kubernetes-config.patch
 fi 
