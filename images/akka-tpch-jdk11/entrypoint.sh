@@ -3,8 +3,11 @@
 pidOfCurrentProcess=0
 
 function finish {
-    echo "Received signal, trying to publish logs and exit"
+    echo "Received signal, trying to publish logs, results, and exit"
     publishLogs
+    if [ -n "$RESULTS_ENDPOINT" ]; then
+      curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
+    fi
     if [ $pidOfCurrentProcess -ne 0 ]; then
         echo "Killing process $pidOfCurrentProcess"
         kill -SIGTERM $pidOfCurrentProcess
@@ -120,13 +123,17 @@ JAVA_EXIT_CODE=0
 
 if [ "$LOG_TO_CONSOLE" = true ]; then
   if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-    java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS
+    java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS &
+
+    pidOfCurrentProcess=$!
+    echo "Java run pid is $pidOfCurrentProcess"
+    wait "$pidOfCurrentProcess"
 
     if [ -n "$RESULTS_ENDPOINT" ]; then
       curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
   else
-    java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS 
+    java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS
   fi
 
   exit $?
