@@ -63,7 +63,7 @@ if [ -z "$POD_IP" ]; then
   exit 1
 fi
 
-git clone "$GIT_URL" ./source
+git clone -b "$GIT_BRANCH" "$GIT_URL" ./source
 
 pom_path=/tmp/app/source/pom.xml
 
