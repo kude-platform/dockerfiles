@@ -10,7 +10,7 @@ function finish {
         wait $pidOfCurrentProcess
     fi
     publishLogs
-    if [ -n "$RESULTS_ENDPOINT" ]; then
+    if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
       curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
     exit 0
