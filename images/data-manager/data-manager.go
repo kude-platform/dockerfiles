@@ -15,7 +15,8 @@ import (
 )
 
 type Dataset struct {
-	Name string `json:"name"`
+	Name     string `json:"name"`
+	FileName string `json:"fileName"`
 }
 
 var datasets []Dataset
@@ -50,51 +51,61 @@ func downloadDatasets() {
 	datasetDir := os.Getenv("DATASET_DIR")
 
 	for _, dataset := range datasets {
-		datasetName := strings.TrimRight(dataset.Name, ".zip")
-		if _, err := os.Stat(datasetDir + "/" + datasetName); err == nil {
-			log.Printf("Dataset %s already exists", datasetName)
+		if _, err := os.Stat(datasetDir + "/" + dataset.Name); err == nil {
+			log.Printf("Dataset %s already exists", dataset.Name)
 			continue
 		}
 
 		resp, err := http.Get("http://" + os.Getenv("EVALUATION_SERVICE_HOST") + ":" + os.Getenv(
-			"EVALUATION_SERVICE_PORT") + "/api/files/download/data/" + dataset.Name)
+			"EVALUATION_SERVICE_PORT") + "/api/files/download/data/" + dataset.FileName)
 
 		if err != nil {
-			log.Printf("Failed to download dataset %s: %s", dataset.Name, err)
+			log.Printf("Failed to download dataset %s: %s", dataset.FileName, err)
 			continue
 		}
 
-		f, err := os.CreateTemp("", dataset.Name)
+		f, err := os.CreateTemp("", dataset.FileName)
 
 		if err != nil {
-			log.Printf("Failed to create file for dataset %s: %s", dataset.Name, err)
-			continue
+			log.Printf("Failed to create file for dataset %s: %s", dataset.FileName, err)
+			return
 		}
 
 		_, err = io.Copy(f, resp.Body)
 
 		if err != nil {
-			log.Printf("Failed to save dataset %s: %s", dataset.Name, err)
+			log.Printf("Failed to save dataset %s: %s", dataset.FileName, err)
 			continue
 		}
-		log.Printf("Downloaded dataset zip %s", dataset.Name)
+		log.Printf("Downloaded dataset zip %s", dataset.FileName)
 
 		archive, err := zip.OpenReader(f.Name())
 		if err != nil {
 			panic(err)
 		}
 
-		dst := filepath.Join(datasetDir, datasetName)
+		dst := filepath.Join(datasetDir, dataset.Name)
 		for _, f := range archive.File {
 			if f.FileInfo().IsDir() {
 				continue
 			}
-			fileName := f.Name[strings.LastIndex(f.Name, "/")+1 : len(f.Name)]
-			filePath := filepath.Join(dst, fileName)
+			filename := f.Name
+			indexOfLastFileSeparator := strings.LastIndex(f.Name, "/")
+			if indexOfLastFileSeparator == -1 {
+				indexOfLastFileSeparator = strings.LastIndex(f.Name, "\\")
+				if indexOfLastFileSeparator != -1 {
+					panic("File separator not found")
+				}
+			}
+
+			filename = f.Name[indexOfLastFileSeparator+1 : len(f.Name)]
+			filePath := filepath.Join(dst, filename)
+
 			fmt.Println("unzipping file ", filePath, " to ", dst)
 			if err = os.MkdirAll(dst, os.ModePerm); err != nil {
 				panic(err)
 			}
+
 			outFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				panic(err)
@@ -108,14 +119,21 @@ func downloadDatasets() {
 			if err != nil {
 				panic(err)
 			}
-			outFile.Close()
-			rc.Close()
-
+			errOutFileClose := outFile.Close()
+			errRcClose := rc.Close()
+			if errOutFileClose != nil || errRcClose != nil {
+				log.Printf("Failed to close file %s: %s", filePath, err)
+				return
+			}
 		}
 
-		archive.Close()
-		f.Close()
-		os.Remove(f.Name())
+		errArchiveClose := archive.Close()
+		errZipFileClose := f.Close()
+		errZipFileRemove := os.Remove(f.Name())
+		if errArchiveClose != nil || errZipFileClose != nil || errZipFileRemove != nil {
+			log.Printf("Failed to clean up after dataset %s: %s, %s, %s, %s", dataset.FileName, err, errArchiveClose, errZipFileClose, errZipFileRemove)
+			return
+		}
 	}
 
 	log.Printf("Finished downloading datasets")
