@@ -131,9 +131,13 @@ cp ./target/app.jar ./app.jar
 
 JAVA_EXIT_CODE=0
 
+START_COMMAND=START_COMMAND_"$JOB_COMPLETION_INDEX"
+MASTER_HOST="$JOB_NAME-0.$SVC_NAME"
+CURRENT_HOST="$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME"
+
 if [ "$LOG_TO_CONSOLE" = true ]; then
   if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-    java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS &
+    ${!START_COMMAND} &
 
     pidOfCurrentProcess=$!
     echo "Java run pid is $pidOfCurrentProcess"
@@ -143,7 +147,7 @@ if [ "$LOG_TO_CONSOLE" = true ]; then
       curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
   else
-    java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS &
+    ${!START_COMMAND} &
   
     pidOfCurrentProcess=$!
     echo "Java run pid is $pidOfCurrentProcess"
@@ -157,10 +161,10 @@ echo "Starting service, logs will be available in service.log"
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   publishEvents "STARTING_MASTER"
-  java $JVM_ARGS -jar ./app.jar master -h "$JOB_NAME-0.$SVC_NAME" -ia $POD_IP $ADDITIONAL_MASTER_ARGS $@ &> ./service.log &
+  ${!START_COMMAND} $@ &> ./service.log &
 else
   publishEvents "STARTING_WORKER"
-  java $JVM_ARGS -jar ./app.jar worker -mh "$JOB_NAME-0.$SVC_NAME" -h "$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME" -ia $POD_IP $ADDITIONAL_WORKER_ARGS $@ &> ./service.log &
+  ${!START_COMMAND} $@ &> ./service.log &
 fi
 
 pidOfCurrentProcess=$!
