@@ -134,6 +134,25 @@ JAVA_EXIT_CODE=0
 export MASTER_HOST="$JOB_NAME-0.$SVC_NAME"
 export CURRENT_HOST="$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME"
 
+publishEvents "BUILD_COMPLETED"
+
+if [ -n "$EVALUATION_SERVICE_ALL_PODS_READY_TO_RUN_ENDPOINT" ]; then
+  echo "Waiting until all pods are ready..."
+  
+  while true; do
+    sleep $((5 - $(date +%s) % 5))
+
+    response=$(curl -s "$EVALUATION_SERVICE_ALL_PODS_READY_TO_RUN_ENDPOINT/$EVALUATION_ID")
+    echo "Response from evaluation service: $response"
+
+    if [ "$response" = "READY" ]; then
+      break
+    fi
+
+  done
+fi
+
+
 START_COMMAND_NAME=START_COMMAND_"$JOB_COMPLETION_INDEX"
 
 START_COMMAND=$(echo "${!START_COMMAND_NAME}" | envsubst)
