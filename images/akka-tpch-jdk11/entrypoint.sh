@@ -66,7 +66,11 @@ if [ -z "$POD_IP" ]; then
   exit 1
 fi
 
-git clone -b "$GIT_BRANCH" --single-branch "$GIT_URL" ./source
+if [ -z "$GIT_BRANCH" ]; then
+  git clone "$GIT_URL" ./source
+else
+  git clone -b "$GIT_BRANCH" --single-branch "$GIT_URL" ./source
+fi
 
 pom_path=/tmp/app/source/pom.xml
 
