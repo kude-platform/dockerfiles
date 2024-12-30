@@ -140,7 +140,8 @@ if [ -n "$EVALUATION_SERVICE_ALL_PODS_READY_TO_RUN_ENDPOINT" ]; then
   echo "Waiting until all pods are ready..."
   
   while true; do
-    sleep $((5 - $(date +%s) % 5))
+    milliseconds_to_sleep_until_next_full_second=$((1000 - $(date +%s%3N) % 1000))
+    sleep 0.$milliseconds_to_sleep_until_next_full_second
 
     response=$(curl -s "$EVALUATION_SERVICE_ALL_PODS_READY_TO_RUN_ENDPOINT/$EVALUATION_ID")
     echo "Response from evaluation service: $response"
