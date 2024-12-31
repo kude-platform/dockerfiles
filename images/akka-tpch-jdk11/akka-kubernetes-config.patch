@@ -28,6 +28,71 @@ index 5592a53..06b25cc 100644
  		}
  	}
  
+diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
+index 8fa9176..e375ed4 100644
+--- a/src/main/java/de/ddm/actors/Master.java
++++ b/src/main/java/de/ddm/actors/Master.java
+@@ -11,7 +11,9 @@ import de.ddm.actors.patterns.Reaper;
+ import de.ddm.actors.profiling.DependencyMiner;
+ import de.ddm.serialization.AkkaSerializable;
+ import lombok.NoArgsConstructor;
++import lombok.extern.slf4j.Slf4j;
+ 
++@Slf4j
+ public class Master extends AbstractBehavior<Master.Message> {
+ 
+ 	////////////////////
+@@ -43,6 +45,16 @@ public class Master extends AbstractBehavior<Master.Message> {
+ 
+ 	private Master(ActorContext<Message> context) {
+ 		super(context);
++		try {
++			if(context.getSelf() == null){
++				log.warn("Context self is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else {
++				log.info("Worker actor created with path: " + context.getSelf().path().toString());
++			}
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
+ 		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
+ 
+ 		this.dependencyMiner = context.spawn(
+diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
+index a3584c8..161d333 100644
+--- a/src/main/java/de/ddm/actors/Worker.java
++++ b/src/main/java/de/ddm/actors/Worker.java
+@@ -12,10 +12,12 @@ import de.ddm.actors.profiling.DependencyWorker;
+ import de.ddm.serialization.AkkaSerializable;
+ import de.ddm.singletons.SystemConfigurationSingleton;
+ import lombok.NoArgsConstructor;
++import lombok.extern.slf4j.Slf4j;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+ 
++@Slf4j
+ public class Worker extends AbstractBehavior<Worker.Message> {
+ 
+ 	////////////////////
+@@ -42,6 +44,16 @@ public class Worker extends AbstractBehavior<Worker.Message> {
+ 
+ 	private Worker(ActorContext<Message> context) {
+ 		super(context);
++		try {
++			if(context.getSelf() == null){
++				log.warn("Context self is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else {
++				log.info("Worker actor created with path: " + context.getSelf().path().toString());
++			}
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
+ 		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
+ 
+ 		final int numWorkers = SystemConfigurationSingleton.get().getNumWorkers();
 diff --git a/src/main/java/de/ddm/configuration/Command.java b/src/main/java/de/ddm/configuration/Command.java
 index 61585ef..18f9deb 100644
 --- a/src/main/java/de/ddm/configuration/Command.java
@@ -49,7 +114,7 @@ index 61585ef..18f9deb 100644
  	int numWorkers = SystemConfigurationSingleton.get().getNumWorkers();
  
 diff --git a/src/main/java/de/ddm/configuration/SystemConfiguration.java b/src/main/java/de/ddm/configuration/SystemConfiguration.java
-index c41e726..d33441f 100644
+index c41e726..a2fc65a 100644
 --- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
 +++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
 @@ -24,6 +24,8 @@ public class SystemConfiguration {
@@ -70,7 +135,7 @@ index c41e726..d33441f 100644
  	private static String getDefaultHost() {
  		try {
  			return InetAddress.getLocalHost().getHostAddress();
-@@ -44,36 +48,44 @@ public class SystemConfiguration {
+@@ -44,28 +48,35 @@ public class SystemConfiguration {
  		this.role = MASTER_ROLE;
  		this.host = commandMaster.host;
  		this.port = commandMaster.port;
@@ -110,15 +175,3 @@ index c41e726..d33441f 100644
  				.withFallback(ConfigFactory.load("application"));
  	}
  
- 	public Config toAkkaTestConfig() {
- 		return ConfigFactory.parseString("" +
--				"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
--				"akka.remote.artery.canonical.port = " + this.port + "\n" +
--				"akka.cluster.roles = [" + this.role + "]")
-+						"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
-+						"akka.remote.artery.canonical.port = " + this.port + "\n" +
-+						"akka.coordinated-shutdown.exit-jvm = off\n" +
-+						"akka.cluster.roles = [" + this.role + "]")
- 				.withFallback(ConfigFactory.load("application"));
- 	}
- }

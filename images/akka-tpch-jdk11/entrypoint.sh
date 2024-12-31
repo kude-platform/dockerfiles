@@ -183,6 +183,7 @@ if [ "$LOG_TO_CONSOLE" = true ]; then
     wait "$pidOfCurrentProcess"
   fi
 
+  publishEvents "JOB_COMPLETED"
   exit $?
 fi
 
