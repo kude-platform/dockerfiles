@@ -1,3 +1,7 @@
+diff --git a/TPCH.zip b/TPCH.zip
+deleted file mode 100644
+index 21d8df1..0000000
+Binary files a/TPCH.zip and /dev/null differ
 diff --git a/pom.xml b/pom.xml
 index c9c493c..471b3e8 100644
 --- a/pom.xml
@@ -10,31 +14,15 @@ index c9c493c..471b3e8 100644
  							<transformers>
  								<transformer
  									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
-index 5592a53..06b25cc 100644
---- a/src/main/java/de/ddm/Main.java
-+++ b/src/main/java/de/ddm/Main.java
-@@ -23,9 +23,10 @@ public class Main {
- 
- 			guardian.tell(new Guardian.StartMessage());
- 
--			waitForInput(">>> Press ENTER to exit <<<");
--
--			guardian.tell(new Guardian.ShutdownMessage());
-+			if (!config.isRunningInKubernetes()) {
-+				waitForInput(">>> Press ENTER to exit <<<");
-+				guardian.tell(new Guardian.ShutdownMessage());
-+			}
- 		}
- 	}
- 
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
-index 8fa9176..e375ed4 100644
+index 8fa9176..d6a8a38 100644
 --- a/src/main/java/de/ddm/actors/Master.java
 +++ b/src/main/java/de/ddm/actors/Master.java
-@@ -11,7 +11,9 @@ import de.ddm.actors.patterns.Reaper;
+@@ -10,8 +10,11 @@ import akka.actor.typed.javadsl.Receive;
+ import de.ddm.actors.patterns.Reaper;
  import de.ddm.actors.profiling.DependencyMiner;
  import de.ddm.serialization.AkkaSerializable;
++import de.ddm.singletons.ReaperSingleton;
  import lombok.NoArgsConstructor;
 +import lombok.extern.slf4j.Slf4j;
  
@@ -42,7 +30,7 @@ index 8fa9176..e375ed4 100644
  public class Master extends AbstractBehavior<Master.Message> {
  
  	////////////////////
-@@ -43,6 +45,16 @@ public class Master extends AbstractBehavior<Master.Message> {
+@@ -43,6 +46,19 @@ public class Master extends AbstractBehavior<Master.Message> {
  
  	private Master(ActorContext<Message> context) {
  		super(context);
@@ -50,6 +38,9 @@ index 8fa9176..e375ed4 100644
 +			if(context.getSelf() == null){
 +				log.warn("Context self is null, sleeping for a second to workaround lazy initialization");
 +				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else if (ReaperSingleton.get() == null) {
++				log.warn("Reaper is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
 +			} else {
 +				log.info("Worker actor created with path: " + context.getSelf().path().toString());
 +			}
@@ -60,11 +51,14 @@ index 8fa9176..e375ed4 100644
  
  		this.dependencyMiner = context.spawn(
 diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
-index a3584c8..161d333 100644
+index dfaaf8f..f61166a 100644
 --- a/src/main/java/de/ddm/actors/Worker.java
 +++ b/src/main/java/de/ddm/actors/Worker.java
-@@ -12,10 +12,12 @@ import de.ddm.actors.profiling.DependencyWorker;
+@@ -11,12 +11,15 @@ import de.ddm.actors.patterns.Reaper;
+ import de.ddm.actors.profiling.DataFetcher;
+ import de.ddm.actors.profiling.DependencyWorker;
  import de.ddm.serialization.AkkaSerializable;
++import de.ddm.singletons.ReaperSingleton;
  import de.ddm.singletons.SystemConfigurationSingleton;
  import lombok.NoArgsConstructor;
 +import lombok.extern.slf4j.Slf4j;
@@ -76,7 +70,7 @@ index a3584c8..161d333 100644
  public class Worker extends AbstractBehavior<Worker.Message> {
  
  	////////////////////
-@@ -42,6 +44,16 @@ public class Worker extends AbstractBehavior<Worker.Message> {
+@@ -43,6 +46,19 @@ public class Worker extends AbstractBehavior<Worker.Message> {
  
  	private Worker(ActorContext<Message> context) {
  		super(context);
@@ -84,6 +78,9 @@ index a3584c8..161d333 100644
 +			if(context.getSelf() == null){
 +				log.warn("Context self is null, sleeping for a second to workaround lazy initialization");
 +				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else if (ReaperSingleton.get() == null) {
++				log.warn("Reaper is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
 +			} else {
 +				log.info("Worker actor created with path: " + context.getSelf().path().toString());
 +			}
