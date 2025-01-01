@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for dir in ./images/*/
+for dir in ./images-master/*/
 do
     dir=${dir%*/}
     name=${dir##*/}
