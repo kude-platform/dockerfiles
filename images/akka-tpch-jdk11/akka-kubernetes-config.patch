@@ -41,10 +41,10 @@ index 2a3d378..263b88d 100644
  		this.worker = context.spawn(Worker.create(), Worker.DEFAULT_NAME);
  
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
-index 8fa9176..9cacc6d 100644
+index 8fa9176..666a4ef 100644
 --- a/src/main/java/de/ddm/actors/Master.java
 +++ b/src/main/java/de/ddm/actors/Master.java
-@@ -43,6 +43,16 @@ public class Master extends AbstractBehavior<Master.Message> {
+@@ -43,6 +43,19 @@ public class Master extends AbstractBehavior<Master.Message> {
  
  	private Master(ActorContext<Message> context) {
  		super(context);
@@ -52,6 +52,9 @@ index 8fa9176..9cacc6d 100644
 +			if(context.getSelf() == null){
 +				System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
 +				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else if (de.ddm.singletons.ReaperSingleton.get() == null) {
++				System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
 +			} else {
 +				System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
 +			}
@@ -62,10 +65,10 @@ index 8fa9176..9cacc6d 100644
  
  		this.dependencyMiner = context.spawn(
 diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
-index a3584c8..b699b5c 100644
+index a3584c8..66cf8f1 100644
 --- a/src/main/java/de/ddm/actors/Worker.java
 +++ b/src/main/java/de/ddm/actors/Worker.java
-@@ -42,6 +42,16 @@ public class Worker extends AbstractBehavior<Worker.Message> {
+@@ -42,6 +42,19 @@ public class Worker extends AbstractBehavior<Worker.Message> {
  
  	private Worker(ActorContext<Message> context) {
  		super(context);
@@ -73,6 +76,9 @@ index a3584c8..b699b5c 100644
 +			if(context.getSelf() == null){
 +				System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
 +				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else if (de.ddm.singletons.ReaperSingleton.get() == null) {
++				System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
 +			} else {
 +				System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
 +			}
