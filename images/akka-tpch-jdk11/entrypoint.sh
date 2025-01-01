@@ -94,10 +94,6 @@ fi
 
 cd /tmp/app/source
 
-if [ "$UNZIP_DATA" = true ]; then
-  unzip -o /tmp/app/data/TPCH.zip -d ./data
-fi
-
 if [ -n "$REMOVE_LINES_IN_FILES" ] && [ -n "$REMOVE_AMOUNT_IN_PERCENT" ]; then
   for file in $(echo $REMOVE_LINES_IN_FILES | tr "," "\n")
   do
