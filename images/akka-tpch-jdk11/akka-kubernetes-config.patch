@@ -85,7 +85,7 @@ index 61585ef..18f9deb 100644
 +
  	@Parameter(names = {"-w", "--numWorkers"}, description = "The number of workers (indexers/validators) to start locally; should be at least one if the algorithm is started standalone (otherwise there are no workers to run the discovery)", required = false)
 diff --git a/src/main/java/de/ddm/configuration/SystemConfiguration.java b/src/main/java/de/ddm/configuration/SystemConfiguration.java
-index c41e726..a2fc65a 100644
+index c41e726..b324a2f 100644
 --- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
 +++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
 @@ -26,2 +26,4 @@ public class SystemConfiguration {
@@ -114,7 +114,7 @@ index c41e726..a2fc65a 100644
  		this.numWorkers = commandWorker.numWorkers;
 +		this.runningInKubernetes = commandWorker.runningInKubernetes;
  	}
-@@ -64,6 +72,9 @@ public class SystemConfiguration {
+@@ -64,6 +72,10 @@ public class SystemConfiguration {
  		return ConfigFactory.parseString("" +
 -				"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
 -				"akka.remote.artery.canonical.port = " + this.port + "\n" +
@@ -125,6 +125,7 @@ index c41e726..a2fc65a 100644
 +						(this.runningInKubernetes ?
 +								"akka.remote.artery.bind.hostname = \"" + this.ipAddress + "\"\n" +
 +										"akka.remote.artery.bind.port = " + this.port + "\n" : "" ) +
++						"akka.logger-startup-timeout = 60s\n" +
 +						"akka.cluster.roles = [" + this.role + "]\n" +
 +						"akka.cluster.seed-nodes = [\"akka://" + this.actorSystemName + "@" + this.masterHost + ":" + this.masterPort + "\"]")
  				.withFallback(ConfigFactory.load("application"));
