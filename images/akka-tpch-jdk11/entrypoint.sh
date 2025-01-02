@@ -37,12 +37,12 @@ function publishEvents {
     if [ -z "$2" ]; then
         echo "Publishing event $1"
         curl -X POST -H "Content-Type: application/json" -d \
-        '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"], "durationInSeconds": "'$2'"}' "$EVENT_INGESTION_ENDPOINT"; \
+        '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"]}' "$EVENT_INGESTION_ENDPOINT"; \
         return
     fi
     echo "Publishing event $1"
     curl -X POST -H "Content-Type: application/json" -d \
-    '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"]}' "$EVENT_INGESTION_ENDPOINT"; \
+    '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"], "durationInSeconds": "'$2'"}' "$EVENT_INGESTION_ENDPOINT"; \
 }
 
 trap finish SIGHUP SIGINT SIGQUIT SIGTERM
