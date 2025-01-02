@@ -34,6 +34,12 @@ function publishLogs {
 }
 
 function publishEvents {
+    if [ -z "$2" ]; then
+        echo "Publishing event $1"
+        curl -X POST -H "Content-Type: application/json" -d \
+        '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"], "durationInSeconds": "'$2'"}' "$EVENT_INGESTION_ENDPOINT"; \
+        return
+    fi
     echo "Publishing event $1"
     curl -X POST -H "Content-Type: application/json" -d \
     '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"]}' "$EVENT_INGESTION_ENDPOINT"; \
@@ -161,25 +167,31 @@ START_COMMAND=$(echo "${!START_COMMAND_NAME}" | envsubst)
 if [ "$LOG_TO_CONSOLE" = true ]; then
   if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
     echo "$START_COMMAND"
+    SECONDS=0
     $START_COMMAND &
 
     pidOfCurrentProcess=$!
     echo "Java run pid is $pidOfCurrentProcess"
     wait "$pidOfCurrentProcess"
+    duration=$SECONDS
+    echo "Job completed in $duration seconds"
 
     if [ -n "$RESULTS_ENDPOINT" ]; then
       curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
   else
     echo "$START_COMMAND"
+    SECONDS=0
     $START_COMMAND &
   
     pidOfCurrentProcess=$!
     echo "Java run pid is $pidOfCurrentProcess"
     wait "$pidOfCurrentProcess"
+    duration=$SECONDS
+    echo "Job completed in $duration seconds"
   fi
 
-  publishEvents "JOB_COMPLETED"
+  publishEvents "JOB_COMPLETED" $duration
   exit $?
 fi
 
@@ -188,16 +200,20 @@ echo "Starting service, logs will be available in service.log"
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   publishEvents "STARTING_MASTER"
   echo "$START_COMMAND"
+  SECONDS=0
   $START_COMMAND & $@ &> ./service.log &
 else
   publishEvents "STARTING_WORKER"
   echo "$START_COMMAND"
+  SECONDS=0
   $START_COMMAND & $@ &> ./service.log &
 fi
 
 pidOfCurrentProcess=$!
 echo "Java run pid is $pidOfCurrentProcess"
 wait "$pidOfCurrentProcess"
+duration=$SECONDS
+echo "Job completed in $duration seconds"
 JAVA_EXIT_CODE=$?
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
@@ -213,6 +229,6 @@ if [ -n "$LOG_ANALYZER_ENDPOINT" ]; then
   curl -X POST -F "file=@./service.log" "$LOG_ANALYZER_ENDPOINT?evaluationId=$EVALUATION_ID&index=$JOB_COMPLETION_INDEX"
 fi
 
-publishEvents "JOB_COMPLETED"
+publishEvents "JOB_COMPLETED" $duration
 
 exit $JAVA_EXIT_CODE
