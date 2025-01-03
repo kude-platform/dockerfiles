@@ -111,8 +111,8 @@ if [ -n "$REMOVE_LINES_IN_FILES" ] && [ -n "$REMOVE_AMOUNT_IN_PERCENT" ]; then
 fi
 
 if [ "$APPLY_PATCH" = true ]; then
-  git apply --reject --ignore-space-change --ignore-whitespace /tmp/app/akka-kubernetes-config.patch
-fi 
+  patch -p1 -l -f < /tmp/app/akka-kubernetes-config.patch
+fi
 
 echo "Building project, logs will be available at /tmp/app/mvn.log"
 
@@ -127,7 +127,35 @@ echo "Maven install pid is $pidOfCurrentProcess"
 wait "$pidOfCurrentProcess"
 
 if [ $? -ne 0 ]; then
-  curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+
+  # try again without patched changes
+  if [ "$APPLY_PATCH" = true ]; then
+    git reset --hard
+
+    echo "Building project without patch, logs will be available at /tmp/app/mvn.log"
+
+    if [ "$OFFLINE_MODE" = true ]; then
+      mvn -o install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
+    else
+      mvn install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
+    fi
+
+    pidOfCurrentProcess=$!
+    echo "Maven install pid is $pidOfCurrentProcess"
+    wait "$pidOfCurrentProcess"
+
+    curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+
+    if [ $? -eq 0 ]; then
+      publishEvents "MVN_BUILD_FAILED_WITH_PATCH"
+      exit 1
+    else
+      publishEvents "MVN_BUILD_FAILED"
+      exit 1
+    fi
+
+  fi
+
   echo "Maven build failed"
   publishEvents "MVN_BUILD_FAILED"
   exit 1

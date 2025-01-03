@@ -2,40 +2,33 @@ diff --git a/pom.xml b/pom.xml
 index c9c493c..471b3e8 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -127,4 +127,5 @@
- 						</goals>
+@@ -128,2 +128,3 @@
  						<configuration>
 +							<finalName>app</finalName>
  							<transformers>
- 								<transformer
 diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
 index 5592a53..f4138ad 100644
 --- a/src/main/java/de/ddm/Main.java
 +++ b/src/main/java/de/ddm/Main.java
-@@ -24,7 +24,4 @@ public class Main {
- 			guardian.tell(new Guardian.StartMessage());
- 
+@@ -25,5 +25,2 @@ public class Main {
+
 -			waitForInput(">>> Press ENTER to exit <<<");
 -
 -			guardian.tell(new Guardian.ShutdownMessage());
  		}
- 	}
 diff --git a/src/main/java/de/ddm/actors/Guardian.java b/src/main/java/de/ddm/actors/Guardian.java
 index 2a3d378..263b88d 100644
 --- a/src/main/java/de/ddm/actors/Guardian.java
 +++ b/src/main/java/de/ddm/actors/Guardian.java
-@@ -68,4 +68,5 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
- 
+@@ -69,2 +69,3 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
  		this.reaper = context.spawn(Reaper.create(), Reaper.DEFAULT_NAME);
 +		de.ddm.singletons.ReaperSingleton.set(this.reaper);
  		this.master = this.isMaster() ? context.spawn(Master.create(), Master.DEFAULT_NAME) : null;
- 		this.worker = context.spawn(Worker.create(), Worker.DEFAULT_NAME);
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
 index 8fa9176..666a4ef 100644
 --- a/src/main/java/de/ddm/actors/Master.java
 +++ b/src/main/java/de/ddm/actors/Master.java
-@@ -44,4 +44,17 @@ public class Master extends AbstractBehavior<Master.Message> {
- 	private Master(ActorContext<Message> context) {
+@@ -45,2 +45,15 @@ public class Master extends AbstractBehavior<Master.Message> {
  		super(context);
 +		try {
 +			if(context.getSelf() == null){
@@ -51,13 +44,11 @@ index 8fa9176..666a4ef 100644
 +			throw new RuntimeException(e);
 +		}
  		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
- 
 diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
 index a3584c8..66cf8f1 100644
 --- a/src/main/java/de/ddm/actors/Worker.java
 +++ b/src/main/java/de/ddm/actors/Worker.java
-@@ -43,4 +43,17 @@ public class Worker extends AbstractBehavior<Worker.Message> {
- 	private Worker(ActorContext<Message> context) {
+@@ -44,2 +44,15 @@ public class Worker extends AbstractBehavior<Worker.Message> {
  		super(context);
 +		try {
 +			if(context.getSelf() == null){
@@ -73,66 +64,53 @@ index a3584c8..66cf8f1 100644
 +			throw new RuntimeException(e);
 +		}
  		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
- 
 diff --git a/src/main/java/de/ddm/configuration/Command.java b/src/main/java/de/ddm/configuration/Command.java
 index 61585ef..18f9deb 100644
 --- a/src/main/java/de/ddm/configuration/Command.java
 +++ b/src/main/java/de/ddm/configuration/Command.java
-@@ -14,7 +14,13 @@ public abstract class Command {
- 	String host = SystemConfigurationSingleton.get().getHost();
- 
+@@ -15,2 +15,5 @@ public abstract class Command {
+
 +	@Parameter(names = {"-ia", "--ipAddress"}, description = "This machine's IP that we use to bind this application against", required = false)
 +	String ipAddress = SystemConfigurationSingleton.get().getIpAddress();
 +
  	@Parameter(names = {"-p", "--port"}, description = "This machines port that we use to bind this application against", required = false)
- 	int port = this.getDefaultPort();
- 
+@@ -18,2 +21,5 @@ public abstract class Command {
+
 +	@Parameter(names = {"-kb", "--runningInKubernetes"}, description = "The application is running in Kubernetes", required = false, arity = 1)
 +	boolean runningInKubernetes = SystemConfigurationSingleton.get().isRunningInKubernetes();
 +
  	@Parameter(names = {"-w", "--numWorkers"}, description = "The number of workers (indexers/validators) to start locally; should be at least one if the algorithm is started standalone (otherwise there are no workers to run the discovery)", required = false)
- 	int numWorkers = SystemConfigurationSingleton.get().getNumWorkers();
 diff --git a/src/main/java/de/ddm/configuration/SystemConfiguration.java b/src/main/java/de/ddm/configuration/SystemConfiguration.java
 index c41e726..b324a2f 100644
 --- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
 +++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
-@@ -25,4 +25,6 @@ public class SystemConfiguration {
- 	private int masterPort = DEFAULT_MASTER_PORT;      // The port of the master; if this is a master, masterPort = port
- 
+@@ -26,2 +26,4 @@ public class SystemConfiguration {
+
 +	private String ipAddress = getDefaultHost();            // The IP address of this machine
 +
  	private String actorSystemName = "ddm";            // The name of this application
- 
-@@ -33,4 +35,6 @@ public class SystemConfiguration {
- 	private boolean hardMode = false;					// Solve the hard version of the task
- 
+@@ -34,2 +36,4 @@ public class SystemConfiguration {
+
 +	private boolean runningInKubernetes = false;        // The application is running in Kubernetes
 +
  	private static String getDefaultHost() {
- 		try {
-@@ -45,4 +49,5 @@ public class SystemConfiguration {
- 		this.host = commandMaster.host;
+@@ -46,2 +50,3 @@ public class SystemConfiguration {
  		this.port = commandMaster.port;
 +		this.ipAddress = commandMaster.ipAddress;
  		this.masterHost = commandMaster.host;
- 		this.masterPort = commandMaster.port;
-@@ -50,4 +55,5 @@ public class SystemConfiguration {
- 		this.startPaused = commandMaster.startPaused;
+@@ -51,2 +56,3 @@ public class SystemConfiguration {
  		this.hardMode = commandMaster.hardMode;
 +		this.runningInKubernetes = commandMaster.runningInKubernetes;
  	}
- 
-@@ -56,15 +62,21 @@ public class SystemConfiguration {
- 		this.host = commandWorker.host;
+@@ -57,2 +63,3 @@ public class SystemConfiguration {
  		this.port = commandWorker.port;
 +		this.ipAddress = commandWorker.ipAddress;
  		this.masterHost = commandWorker.masterhost;
- 		this.masterPort = commandWorker.masterport;
+@@ -60,2 +67,3 @@ public class SystemConfiguration {
  		this.numWorkers = commandWorker.numWorkers;
 +		this.runningInKubernetes = commandWorker.runningInKubernetes;
  	}
- 
- 	public Config toAkkaConfig() {
+@@ -64,6 +72,10 @@ public class SystemConfiguration {
  		return ConfigFactory.parseString("" +
 -				"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
 -				"akka.remote.artery.canonical.port = " + this.port + "\n" +
@@ -147,4 +125,3 @@ index c41e726..b324a2f 100644
 +						"akka.cluster.roles = [" + this.role + "]\n" +
 +						"akka.cluster.seed-nodes = [\"akka://" + this.actorSystemName + "@" + this.masterHost + ":" + this.masterPort + "\"]")
  				.withFallback(ConfigFactory.load("application"));
- 	}
