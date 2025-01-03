@@ -11,19 +11,11 @@ index 5592a53..f4138ad 100644
 --- a/src/main/java/de/ddm/Main.java
 +++ b/src/main/java/de/ddm/Main.java
 @@ -25,5 +25,2 @@ public class Main {
-
+ 
 -			waitForInput(">>> Press ENTER to exit <<<");
 -
 -			guardian.tell(new Guardian.ShutdownMessage());
  		}
-diff --git a/src/main/java/de/ddm/actors/Guardian.java b/src/main/java/de/ddm/actors/Guardian.java
-index 2a3d378..263b88d 100644
---- a/src/main/java/de/ddm/actors/Guardian.java
-+++ b/src/main/java/de/ddm/actors/Guardian.java
-@@ -69,2 +69,3 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
- 		this.reaper = context.spawn(Reaper.create(), Reaper.DEFAULT_NAME);
-+		de.ddm.singletons.ReaperSingleton.set(this.reaper);
- 		this.master = this.isMaster() ? context.spawn(Master.create(), Master.DEFAULT_NAME) : null;
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
 index 8fa9176..666a4ef 100644
 --- a/src/main/java/de/ddm/actors/Master.java
@@ -69,13 +61,13 @@ index 61585ef..18f9deb 100644
 --- a/src/main/java/de/ddm/configuration/Command.java
 +++ b/src/main/java/de/ddm/configuration/Command.java
 @@ -15,2 +15,5 @@ public abstract class Command {
-
+ 
 +	@Parameter(names = {"-ia", "--ipAddress"}, description = "This machine's IP that we use to bind this application against", required = false)
 +	String ipAddress = SystemConfigurationSingleton.get().getIpAddress();
 +
  	@Parameter(names = {"-p", "--port"}, description = "This machines port that we use to bind this application against", required = false)
 @@ -18,2 +21,5 @@ public abstract class Command {
-
+ 
 +	@Parameter(names = {"-kb", "--runningInKubernetes"}, description = "The application is running in Kubernetes", required = false, arity = 1)
 +	boolean runningInKubernetes = SystemConfigurationSingleton.get().isRunningInKubernetes();
 +
@@ -85,12 +77,12 @@ index c41e726..b324a2f 100644
 --- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
 +++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
 @@ -26,2 +26,4 @@ public class SystemConfiguration {
-
+ 
 +	private String ipAddress = getDefaultHost();            // The IP address of this machine
 +
  	private String actorSystemName = "ddm";            // The name of this application
 @@ -34,2 +36,4 @@ public class SystemConfiguration {
-
+ 
 +	private boolean runningInKubernetes = false;        // The application is running in Kubernetes
 +
  	private static String getDefaultHost() {
