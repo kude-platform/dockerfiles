@@ -151,14 +151,15 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+publishEvents "BUILD_COMPLETED"
+
 cp ./target/app.jar ./app.jar
 
 JAVA_EXIT_CODE=0
 
 export MASTER_HOST="$JOB_NAME-0.$SVC_NAME"
 export CURRENT_HOST="$JOB_NAME-$JOB_COMPLETION_INDEX.$SVC_NAME"
-
-publishEvents "BUILD_COMPLETED"
 
 if [ -n "$EVALUATION_SERVICE_ALL_PODS_READY_TO_RUN_ENDPOINT" ]; then
   echo "Waiting until all pods are ready..."
