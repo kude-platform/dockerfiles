@@ -7,23 +7,59 @@ index c9c493c..471b3e8 100644
 +							<finalName>app</finalName>
  							<transformers>
 diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
-index 5592a53..f4138ad 100644
+index 5592a53..06b25cc 100644
 --- a/src/main/java/de/ddm/Main.java
 +++ b/src/main/java/de/ddm/Main.java
-@@ -25,5 +25,2 @@ public class Main {
+@@ -25,5 +25,6 @@ public class Main {
  
 -			waitForInput(">>> Press ENTER to exit <<<");
 -
 -			guardian.tell(new Guardian.ShutdownMessage());
++			if (!config.isRunningInKubernetes()) {
++				waitForInput(">>> Press ENTER to exit <<<");
++				guardian.tell(new Guardian.ShutdownMessage());
++			}
  		}
-diff --git a/src/main/java/de/ddm/actors/Guardian.java b/src/main/java/de/ddm/actors/Guardian.java
-index 2a3d378..263b88d 100644
---- a/src/main/java/de/ddm/actors/Guardian.java
-+++ b/src/main/java/de/ddm/actors/Guardian.java
-@@ -69,2 +69,3 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
- 		this.reaper = context.spawn(Reaper.create(), Reaper.DEFAULT_NAME);
-+		de.ddm.singletons.ReaperSingleton.set(this.reaper);
- 		this.master = this.isMaster() ? context.spawn(Master.create(), Master.DEFAULT_NAME) : null;
+diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
+index 8fa9176..666a4ef 100644
+--- a/src/main/java/de/ddm/actors/Master.java
++++ b/src/main/java/de/ddm/actors/Master.java
+@@ -45,2 +45,15 @@ public class Master extends AbstractBehavior<Master.Message> {
+ 		super(context);
++		try {
++			if(context.getSelf() == null){
++				System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else if (de.ddm.singletons.ReaperSingleton.get() == null) {
++				System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
++			} else {
++				System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
++			}
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
+ 		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
+diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
+index a3584c8..66cf8f1 100644
+--- a/src/main/java/de/ddm/actors/Worker.java
++++ b/src/main/java/de/ddm/actors/Worker.java
+@@ -44,2 +44,15 @@ public class Worker extends AbstractBehavior<Worker.Message> {
+ 		super(context);
++		try {
++			if(context.getSelf() == null){
++				System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++			} else if (de.ddm.singletons.ReaperSingleton.get() == null) {
++				System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
++				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
++			} else {
++				System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
++			}
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
+ 		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
 diff --git a/src/main/java/de/ddm/configuration/Command.java b/src/main/java/de/ddm/configuration/Command.java
 index 61585ef..18f9deb 100644
 --- a/src/main/java/de/ddm/configuration/Command.java
