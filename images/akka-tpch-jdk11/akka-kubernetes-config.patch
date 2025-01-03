@@ -16,6 +16,14 @@ index 5592a53..f4138ad 100644
 -
 -			guardian.tell(new Guardian.ShutdownMessage());
  		}
+diff --git a/src/main/java/de/ddm/actors/Guardian.java b/src/main/java/de/ddm/actors/Guardian.java
+index 2a3d378..263b88d 100644
+--- a/src/main/java/de/ddm/actors/Guardian.java
++++ b/src/main/java/de/ddm/actors/Guardian.java
+@@ -69,2 +69,3 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
+ 		this.reaper = context.spawn(Reaper.create(), Reaper.DEFAULT_NAME);
++		de.ddm.singletons.ReaperSingleton.set(this.reaper);
+ 		this.master = this.isMaster() ? context.spawn(Master.create(), Master.DEFAULT_NAME) : null;
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
 index 8fa9176..666a4ef 100644
 --- a/src/main/java/de/ddm/actors/Master.java
