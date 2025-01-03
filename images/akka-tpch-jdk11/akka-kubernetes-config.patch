@@ -7,18 +7,14 @@ index c9c493c..471b3e8 100644
 +							<finalName>app</finalName>
  							<transformers>
 diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
-index 5592a53..06b25cc 100644
+index 5592a53..f4138ad 100644
 --- a/src/main/java/de/ddm/Main.java
 +++ b/src/main/java/de/ddm/Main.java
-@@ -25,5 +25,6 @@ public class Main {
+@@ -25,5 +25,2 @@ public class Main {
  
 -			waitForInput(">>> Press ENTER to exit <<<");
 -
 -			guardian.tell(new Guardian.ShutdownMessage());
-+			if (!config.isRunningInKubernetes()) {
-+				waitForInput(">>> Press ENTER to exit <<<");
-+				guardian.tell(new Guardian.ShutdownMessage());
-+			}
  		}
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
 index 8fa9176..666a4ef 100644
