@@ -133,10 +133,11 @@ if [ $? -ne 0 ]; then
     pidOfCurrentProcess=$!
     echo "Maven install pid is $pidOfCurrentProcess"
     wait "$pidOfCurrentProcess"
+    MAVEN_EXIT_CODE=$?
 
     curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
 
-    if [ $? -eq 0 ]; then
+    if [ $MAVEN_EXIT_CODE -eq 0 ]; then
       publishEvents "MVN_BUILD_FAILED_WITH_PATCH"
       exit 1
     else
