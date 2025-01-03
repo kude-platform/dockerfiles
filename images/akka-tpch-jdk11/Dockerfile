@@ -8,7 +8,7 @@ RUN rm apache-maven-3.9.9-bin.tar.gz
 ENV M2_HOME='/opt/apache-maven-3.9.9'
 ENV PATH="$M2_HOME/bin:$PATH"
 
-RUN apk --no-cache add git unzip zip curl bash envsubst\
+RUN apk --no-cache add git unzip zip curl bash envsubst patch\
     && git clone https://github.com/kude-platform/template-projects-akka-kubernetes /tmp/template-projects-akka-build
 
 WORKDIR /tmp/template-projects-akka-build
