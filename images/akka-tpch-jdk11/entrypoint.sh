@@ -100,16 +100,6 @@ fi
 
 cd /tmp/app/source
 
-if [ -n "$REMOVE_LINES_IN_FILES" ] && [ -n "$REMOVE_AMOUNT_IN_PERCENT" ]; then
-  for file in $(echo $REMOVE_LINES_IN_FILES | tr "," "\n")
-  do
-    amountOfLines=$(wc -l < $file)
-    amountOfLinesToKeep=$(echo "scale=0; $amountOfLines * (100 - $REMOVE_AMOUNT_IN_PERCENT) / 100" | bc)
-    head -n $amountOfLinesToKeep $file > $file.tmp
-    mv $file.tmp $file
-  done
-fi
-
 if [ "$APPLY_PATCH" = true ]; then
   patch -p1 -l -f < /tmp/app/akka-kubernetes-config.patch
 fi
@@ -193,70 +183,48 @@ START_COMMAND_NAME=START_COMMAND_"$JOB_COMPLETION_INDEX"
 START_COMMAND=$(echo "${!START_COMMAND_NAME}" | envsubst)
 
 if [ "$LOG_TO_CONSOLE" = true ]; then
-  if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
-    echo "$START_COMMAND"
-    SECONDS=0
-    $START_COMMAND &
+  echo "Starting service, logs will be available in console"
 
-    pidOfCurrentProcess=$!
-    echo "Java run pid is $pidOfCurrentProcess"
-    wait "$pidOfCurrentProcess"
-    duration=$SECONDS
-    echo "Job completed in $duration seconds"
+  echo "$START_COMMAND"
+  SECONDS=0
+  $START_COMMAND &
 
-    if [ -n "$RESULTS_ENDPOINT" ]; then
-      curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
-    fi
-  else
-    echo "$START_COMMAND"
-    SECONDS=0
-    $START_COMMAND &
-  
-    pidOfCurrentProcess=$!
-    echo "Java run pid is $pidOfCurrentProcess"
-    wait "$pidOfCurrentProcess"
-    duration=$SECONDS
-    echo "Job completed in $duration seconds"
-  fi
+  pidOfCurrentProcess=$!
+  echo "Java run pid is $pidOfCurrentProcess"
+  wait "$pidOfCurrentProcess"
+  JAVA_EXIT_CODE=$?
+  duration=$SECONDS
 
-  publishEvents "JOB_COMPLETED" $duration
-  exit $?
-fi
+else
+  echo "Starting service, logs will be available in service.log"
 
-echo "Starting service, logs will be available in service.log"
-
-if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   publishEvents "STARTING_MASTER"
   echo "$START_COMMAND"
   SECONDS=0
   $START_COMMAND & $@ &> ./service.log &
-else
-  publishEvents "STARTING_WORKER"
-  echo "$START_COMMAND"
-  SECONDS=0
-  $START_COMMAND & $@ &> ./service.log &
+
+  pidOfCurrentProcess=$!
+  echo "Java run pid is $pidOfCurrentProcess"
+  wait "$pidOfCurrentProcess"
+  JAVA_EXIT_CODE=$?
+  duration=$SECONDS
+
+  zip logs.zip ./service.log ./mvn.log
+  if [ -n "$LOGS_ENDPOINT" ]; then
+    curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
+  fi
+
+  if [ -n "$LOG_ANALYZER_ENDPOINT" ]; then
+    curl -X POST -F "file=@./service.log" "$LOG_ANALYZER_ENDPOINT?evaluationId=$EVALUATION_ID&index=$JOB_COMPLETION_INDEX"
+  fi
 fi
 
-pidOfCurrentProcess=$!
-echo "Java run pid is $pidOfCurrentProcess"
-wait "$pidOfCurrentProcess"
-duration=$SECONDS
-echo "Job completed in $duration seconds"
-JAVA_EXIT_CODE=$?
 
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
   curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
 fi
 
-zip logs.zip ./service.log ./mvn.log
-if [ -n "$LOGS_ENDPOINT" ]; then
-  curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
-fi
-
-if [ -n "$LOG_ANALYZER_ENDPOINT" ]; then
-  curl -X POST -F "file=@./service.log" "$LOG_ANALYZER_ENDPOINT?evaluationId=$EVALUATION_ID&index=$JOB_COMPLETION_INDEX"
-fi
-
+echo "Job completed in $duration seconds"
 publishEvents "JOB_COMPLETED" $duration
 
 exit $JAVA_EXIT_CODE
