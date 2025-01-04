@@ -86,7 +86,7 @@ if [ ! -f ./source/pom.xml ]; then
     pom_path=$(find . -name pom.xml -type f -print -quit)
 
     if [ -z "$pom_path" ]; then
-        publishEvents "POM_NOT_FOUND" "FATAL"
+        publishEvents "POM_NOT_FOUND" "ERROR"
         echo "pom.xml not found in the project"
         exit 1
     fi
@@ -139,17 +139,17 @@ if [ $? -ne 0 ]; then
     curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
 
     if [ $MAVEN_EXIT_CODE -eq 0 ]; then
-      publishEvents "MVN_BUILD_FAILED_WITH_PATCH" "FATAL"
+      publishEvents "MVN_BUILD_FAILED_WITH_PATCH" "ERROR"
       exit 1
     else
-      publishEvents "MVN_BUILD_FAILED" "FATAL"
+      publishEvents "MVN_BUILD_FAILED" "ERROR"
       exit 1
     fi
 
   fi
 
   echo "Maven build failed"
-  publishEvents "MVN_BUILD_FAILED" "FATAL"
+  publishEvents "MVN_BUILD_FAILED" "ERROR"
   exit 1
 fi
 
