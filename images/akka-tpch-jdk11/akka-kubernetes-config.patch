@@ -11,98 +11,150 @@ index 5592a53..f4138ad 100644
 --- a/src/main/java/de/ddm/Main.java
 +++ b/src/main/java/de/ddm/Main.java
 @@ -25,5 +25,2 @@ public class Main {
- 
+
 -			waitForInput(">>> Press ENTER to exit <<<");
 -
 -			guardian.tell(new Guardian.ShutdownMessage());
  		}
+diff --git a/src/main/java/de/ddm/actors/AbstractBehavior.java b/src/main/java/de/ddm/actors/AbstractBehavior.java
+new file mode 100644
+index 0000000..c90ce19
+--- /dev/null
++++ b/src/main/java/de/ddm/actors/AbstractBehavior.java
+@@ -0,0 +1,28 @@
++package de.ddm.actors;
++
++import akka.actor.typed.javadsl.ActorContext;
++
++/**
++ * To be removed, once issue is fixed in base code
++ * @param <T>
++ */
++public abstract class AbstractBehavior<T> extends akka.actor.typed.javadsl.AbstractBehavior<T> {
++
++    public AbstractBehavior(ActorContext<T> context) {
++        super(context);
++        try {
++            if(context.getSelf() == null){
++                System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
++                Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++            } else if (de.ddm.singletons.ReaperSingleton.get() == null) {
++                System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
++                Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
++            } else {
++                System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
++            }
++        } catch (InterruptedException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++}
 diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
-index 8fa9176..666a4ef 100644
+index 8fa9176..7c73cb2 100644
 --- a/src/main/java/de/ddm/actors/Master.java
 +++ b/src/main/java/de/ddm/actors/Master.java
-@@ -45,2 +45,15 @@ public class Master extends AbstractBehavior<Master.Message> {
- 		super(context);
-+		try {
-+			if(context.getSelf() == null){
-+				System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
-+				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
-+			} else if (de.ddm.singletons.ReaperSingleton.get() == null) {
-+				System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
-+				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
-+			} else {
-+				System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
-+			}
-+		} catch (InterruptedException e) {
-+			throw new RuntimeException(e);
-+		}
- 		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
+@@ -5,3 +5,2 @@ import akka.actor.typed.Behavior;
+ import akka.actor.typed.DispatcherSelector;
+-import akka.actor.typed.javadsl.AbstractBehavior;
+ import akka.actor.typed.javadsl.ActorContext;
 diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
-index a3584c8..66cf8f1 100644
+index a3584c8..0508945 100644
 --- a/src/main/java/de/ddm/actors/Worker.java
 +++ b/src/main/java/de/ddm/actors/Worker.java
-@@ -44,2 +44,15 @@ public class Worker extends AbstractBehavior<Worker.Message> {
- 		super(context);
-+		try {
-+			if(context.getSelf() == null){
-+				System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
-+				Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
-+			} else if (de.ddm.singletons.ReaperSingleton.get() == null) {
-+				System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
-+				Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
-+			} else {
-+				System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
-+			}
-+		} catch (InterruptedException e) {
-+			throw new RuntimeException(e);
-+		}
- 		Reaper.watchWithDefaultReaper(this.getContext().getSelf());
+@@ -5,3 +5,2 @@ import akka.actor.typed.Behavior;
+ import akka.actor.typed.DispatcherSelector;
+-import akka.actor.typed.javadsl.AbstractBehavior;
+ import akka.actor.typed.javadsl.ActorContext;
 diff --git a/src/main/java/de/ddm/configuration/Command.java b/src/main/java/de/ddm/configuration/Command.java
-index 61585ef..18f9deb 100644
+index 61585ef..3ddb6b4 100644
 --- a/src/main/java/de/ddm/configuration/Command.java
 +++ b/src/main/java/de/ddm/configuration/Command.java
-@@ -15,2 +15,5 @@ public abstract class Command {
- 
+@@ -8,3 +8,3 @@ import de.ddm.singletons.SystemConfigurationSingleton;
+
+-public abstract class Command {
++public abstract class Command extends PatchedBaseCommand{
+
+diff --git a/src/main/java/de/ddm/configuration/PatchedBaseCommand.java b/src/main/java/de/ddm/configuration/PatchedBaseCommand.java
+new file mode 100644
+index 0000000..10e69dc
+--- /dev/null
++++ b/src/main/java/de/ddm/configuration/PatchedBaseCommand.java
+@@ -0,0 +1,17 @@
++package de.ddm.configuration;
++
++import com.beust.jcommander.JCommander;
++import com.beust.jcommander.Parameter;
++import com.beust.jcommander.ParameterException;
++import de.ddm.singletons.InputConfigurationSingleton;
++import de.ddm.singletons.SystemConfigurationSingleton;
++
++public abstract class PatchedBaseCommand {
++
 +	@Parameter(names = {"-ia", "--ipAddress"}, description = "This machine's IP that we use to bind this application against", required = false)
 +	String ipAddress = SystemConfigurationSingleton.get().getIpAddress();
 +
- 	@Parameter(names = {"-p", "--port"}, description = "This machines port that we use to bind this application against", required = false)
-@@ -18,2 +21,5 @@ public abstract class Command {
- 
 +	@Parameter(names = {"-kb", "--runningInKubernetes"}, description = "The application is running in Kubernetes", required = false, arity = 1)
 +	boolean runningInKubernetes = SystemConfigurationSingleton.get().isRunningInKubernetes();
 +
- 	@Parameter(names = {"-w", "--numWorkers"}, description = "The number of workers (indexers/validators) to start locally; should be at least one if the algorithm is started standalone (otherwise there are no workers to run the discovery)", required = false)
++}
+diff --git a/src/main/java/de/ddm/configuration/PatchedBaseSystemConfiguration.java b/src/main/java/de/ddm/configuration/PatchedBaseSystemConfiguration.java
+new file mode 100644
+index 0000000..f369ddd
+--- /dev/null
++++ b/src/main/java/de/ddm/configuration/PatchedBaseSystemConfiguration.java
+@@ -0,0 +1,25 @@
++package de.ddm.configuration;
++
++import com.typesafe.config.Config;
++import com.typesafe.config.ConfigFactory;
++import lombok.Data;
++
++import java.net.InetAddress;
++import java.net.UnknownHostException;
++
++@Data
++public class PatchedBaseSystemConfiguration {
++
++	protected String ipAddress = getDefaultHost();            // The IP address of this machine
++
++	protected boolean runningInKubernetes = false;        // The application is running in Kubernetes
++
++	private static String getDefaultHost() {
++		try {
++			return InetAddress.getLocalHost().getHostAddress();
++		} catch (UnknownHostException e) {
++			return "localhost";
++		}
++	}
++
++}
 diff --git a/src/main/java/de/ddm/configuration/SystemConfiguration.java b/src/main/java/de/ddm/configuration/SystemConfiguration.java
-index c41e726..b324a2f 100644
+index c41e726..7898562 100644
 --- a/src/main/java/de/ddm/configuration/SystemConfiguration.java
 +++ b/src/main/java/de/ddm/configuration/SystemConfiguration.java
-@@ -26,2 +26,4 @@ public class SystemConfiguration {
- 
-+	private String ipAddress = getDefaultHost();            // The IP address of this machine
-+
- 	private String actorSystemName = "ddm";            // The name of this application
-@@ -34,2 +36,4 @@ public class SystemConfiguration {
- 
-+	private boolean runningInKubernetes = false;        // The application is running in Kubernetes
-+
- 	private static String getDefaultHost() {
-@@ -46,2 +50,3 @@ public class SystemConfiguration {
+@@ -10,3 +10,3 @@ import java.net.UnknownHostException;
+ @Data
+-public class SystemConfiguration {
++public class SystemConfiguration extends PatchedBaseSystemConfiguration{
+
+@@ -46,2 +46,3 @@ public class SystemConfiguration {
  		this.port = commandMaster.port;
 +		this.ipAddress = commandMaster.ipAddress;
  		this.masterHost = commandMaster.host;
-@@ -51,2 +56,3 @@ public class SystemConfiguration {
+@@ -51,2 +52,3 @@ public class SystemConfiguration {
  		this.hardMode = commandMaster.hardMode;
 +		this.runningInKubernetes = commandMaster.runningInKubernetes;
  	}
-@@ -57,2 +63,3 @@ public class SystemConfiguration {
+@@ -57,2 +59,3 @@ public class SystemConfiguration {
  		this.port = commandWorker.port;
 +		this.ipAddress = commandWorker.ipAddress;
  		this.masterHost = commandWorker.masterhost;
-@@ -60,2 +67,3 @@ public class SystemConfiguration {
+@@ -60,2 +63,3 @@ public class SystemConfiguration {
  		this.numWorkers = commandWorker.numWorkers;
 +		this.runningInKubernetes = commandWorker.runningInKubernetes;
  	}
-@@ -64,6 +72,10 @@ public class SystemConfiguration {
+@@ -64,6 +68,10 @@ public class SystemConfiguration {
  		return ConfigFactory.parseString("" +
 -				"akka.remote.artery.canonical.hostname = \"" + this.host + "\"\n" +
 -				"akka.remote.artery.canonical.port = " + this.port + "\n" +
