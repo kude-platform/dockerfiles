@@ -34,15 +34,15 @@ function publishLogs {
 }
 
 function publishEvents {
-    if [ -z "$2" ]; then
+    if [ -z "$3" ]; then
         echo "Publishing event $1"
         curl -X POST -H "Content-Type: application/json" -d \
-        '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"]}' "$EVENT_INGESTION_ENDPOINT"; \
+        '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "events": [{"type":"'$1'","level": "'$2'"}]}' "$EVENT_INGESTION_ENDPOINT"; \
         return
     fi
     echo "Publishing event $1"
     curl -X POST -H "Content-Type: application/json" -d \
-    '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "errors": ["'$1'"], "durationInSeconds": "'$2'"}' "$EVENT_INGESTION_ENDPOINT"; \
+    '{"evaluationId":"'$EVALUATION_ID'", "index": "'$JOB_COMPLETION_INDEX'", "events": [{"type":"'$1'","level": "'$2'","durationInSeconds": "'$3'"}]}' "$EVENT_INGESTION_ENDPOINT"; \
 }
 
 trap finish SIGHUP SIGINT SIGQUIT SIGTERM
@@ -81,12 +81,12 @@ fi
 pom_path=/tmp/app/source/pom.xml
 
 if [ ! -f ./source/pom.xml ]; then
-    publishEvents "POM_NOT_IN_ROOT"
+    publishEvents "POM_NOT_IN_ROOT" "WARN"
     echo "pom.xml not found in the root directory of the project. Trying to find it in the subdirectories"
     pom_path=$(find . -name pom.xml -type f -print -quit)
 
     if [ -z "$pom_path" ]; then
-        publishEvents "POM_NOT_FOUND"
+        publishEvents "POM_NOT_FOUND" "FATAL"
         echo "pom.xml not found in the project"
         exit 1
     fi
@@ -105,12 +105,13 @@ if [ "$APPLY_PATCH" = true ]; then
 fi
 
 echo "Building project, logs will be available at /tmp/app/mvn.log"
-
+SECONDS=0
 if [ "$OFFLINE_MODE" = true ]; then
   mvn -o install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
 else
   mvn install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
 fi
+mvnBuildDuration=$SECONDS
 
 pidOfCurrentProcess=$!
 echo "Maven install pid is $pidOfCurrentProcess"
@@ -138,22 +139,23 @@ if [ $? -ne 0 ]; then
     curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
 
     if [ $MAVEN_EXIT_CODE -eq 0 ]; then
-      publishEvents "MVN_BUILD_FAILED_WITH_PATCH"
+      publishEvents "MVN_BUILD_FAILED_WITH_PATCH" "FATAL"
       exit 1
     else
-      publishEvents "MVN_BUILD_FAILED"
+      publishEvents "MVN_BUILD_FAILED" "FATAL"
       exit 1
     fi
 
   fi
 
   echo "Maven build failed"
-  publishEvents "MVN_BUILD_FAILED"
+  publishEvents "MVN_BUILD_FAILED" "FATAL"
   exit 1
 fi
 
 curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
-publishEvents "BUILD_COMPLETED"
+echo "Build completed in $mvnBuildDuration seconds"
+publishEvents "BUILD_COMPLETED" "INFO" $mvnBuildDuration
 
 cp ./target/app.jar ./app.jar
 
@@ -200,7 +202,7 @@ if [ "$LOG_TO_CONSOLE" = true ]; then
 else
   echo "Starting service, logs will be available in service.log"
 
-  publishEvents "STARTING_MASTER"
+  publishEvents "STARTING_MASTER" "INFO"
   echo "$START_COMMAND"
   SECONDS=0
   $START_COMMAND & $@ &> ./service.log &
@@ -227,6 +229,6 @@ if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
 fi
 
 echo "Job completed in $duration seconds"
-publishEvents "JOB_COMPLETED" $duration
+publishEvents "JOB_COMPLETED" "INFO" $duration
 
 exit $JAVA_EXIT_CODE

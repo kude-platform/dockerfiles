@@ -46,19 +46,18 @@ type Kubernetes struct {
 	Labels map[string]string
 }
 
-type ErrorEventDefinition struct {
-	Category      string   `json:"category"`
-	ErrorPatterns []string `json:"errorPatterns"`
-	Fatal         bool     `json:"fatal"`
+type EventDefinition struct {
+	Type      string   `json:"type"`
+	Patterns  []string `json:"patterns"`
+	Level     string   `json:"level"`
 }
 
-var errorEventDefinitions []ErrorEventDefinition
+var eventDefinitions []EventDefinition
 
 type EvaluationEvent struct {
 	EvaluationId string                 `json:"evaluationId"`
 	Index        string                 `json:"index"`
-	Errors       []string               `json:"errors"`
-	ErrorObjects []ErrorEventDefinition `json:"errorObjects"`
+	Events []EventDefinition `json:"events"`
 }
 
 func ingestLogFiles(_ http.ResponseWriter, req *http.Request) {
@@ -96,29 +95,24 @@ func ingestLogs(_ http.ResponseWriter, req *http.Request) {
 }
 
 func analyzeLogEntries(logEntries []LogEntry) {
-	var errors []string
-	var errorObjects []ErrorEventDefinition
+	var events []EventDefinition
 
 	for _, logEntry := range logEntries {
-		errorEventDefinition, foundCategory := categorizeLog(logEntry.Log)
+		eventDefinition, foundCategory := categorizeLog(logEntry.Log)
 
 		if foundCategory {
-			log.Printf("Categorized log message: %s as %s", logEntry.Log, errorEventDefinition)
-			errors = append(errors, errorEventDefinition.Category)
-			errorObjects = append(errorObjects, errorEventDefinition)
+			log.Printf("Categorized log message: %s as %s", logEntry.Log, eventDefinition)
+			events = append(events, eventDefinition)
 		}
 	}
 
-	if len(errors) > 0 {
+	if len(events) > 0 {
 		event := EvaluationEvent{
 			EvaluationId: logEntries[0].Kubernetes.Labels["evaluation-id"],
 			Index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
-			Errors:       errors,
-			ErrorObjects: errorObjects,
+			Events: events,
 		}
 		eventJson, err := json.Marshal(event)
-
-		// print the event to the console
 		log.Printf("Event: %s", eventJson)
 
 		if err != nil {
@@ -134,24 +128,23 @@ func analyzeLogEntries(logEntries []LogEntry) {
 	}
 }
 
-func categorizeLog(log string) (response ErrorEventDefinition, foundCategory bool) {
-	for errorEventDefinition := range errorEventDefinitions {
-		for _, keyword := range errorEventDefinitions[errorEventDefinition].ErrorPatterns {
+func categorizeLog(log string) (response EventDefinition, foundCategory bool) {
+	for eventDefinition := range eventDefinitions {
+		for _, keyword := range eventDefinitions[eventDefinition].Patterns {
 			if strings.Contains(log, keyword) {
-				return errorEventDefinitions[errorEventDefinition], true
+				return eventDefinitions[eventDefinition], true
 			}
 		}
 	}
-	return ErrorEventDefinition{}, false
+	return EventDefinition{}, false
 }
 
-func updateLogMessageErrorCategories() {
-	// get the latest categories from the evaluation service
+func updateLogMessageEventDefinitions() {
 	resp, err := http.Get("http://" + os.Getenv("EVALUATION_SERVICE_HOST") + ":" + os.Getenv(
-		"EVALUATION_SERVICE_PORT") + "/api/errorEventDefinition")
+		"EVALUATION_SERVICE_PORT") + "/api/logEventDefinition")
 
 	if err != nil {
-		log.Printf("Failed to get categories from evaluation service: %s", err)
+		log.Printf("Failed to get log event definitions from evaluation service: %s", err)
 		return
 	}
 
@@ -162,14 +155,14 @@ func updateLogMessageErrorCategories() {
 		return
 	}
 
-	err = json.Unmarshal(responseBody, &errorEventDefinitions)
+	err = json.Unmarshal(responseBody, &eventDefinitions)
 
 	if err != nil {
-		log.Printf("Failed to unmarshal error event definitions: %s", err)
+		log.Printf("Failed to unmarshal log event definitions: %s", err)
 		return
 	}
 
-	log.Printf("Updated log message error categories: %s", errorEventDefinitions)
+	log.Printf("Updated log event definitions: %s", eventDefinitions)
 }
 
 func main() {
@@ -178,7 +171,7 @@ func main() {
 
 	go func() {
 		for range time.Tick(time.Second * 30) {
-			updateLogMessageErrorCategories()
+			updateLogMessageEventDefinitions()
 		}
 	}()
 
