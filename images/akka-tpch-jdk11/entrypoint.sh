@@ -100,6 +100,11 @@ fi
 
 cd /tmp/app/source
 
+if [ -f ./results.txt ] && [ -s ./results.txt ]; then
+  publishEvents "RESULTS_FILE_ALREADY_EXISTS_WITH_CONTENT" "WARN"
+  rm -f ./results.txt
+fi
+
 if [ "$APPLY_PATCH" = true ]; then
   patch -p1 -l -f < /tmp/app/akka-kubernetes-config.patch
 fi
