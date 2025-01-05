@@ -157,7 +157,14 @@ curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION
 echo "Build completed in $mvnBuildDuration seconds"
 publishEvents "BUILD_COMPLETED" "INFO" $mvnBuildDuration
 
-cp ./target/app.jar ./app.jar
+JAVA_ARTIFACT_PATH=$(find ./target -name "*.jar" -type f -not -name "*original*" | head -n 1)
+if [ -z "$JAVA_ARTIFACT_PATH" ]; then
+  echo "Java artifact not found"
+  publishEvents "JAVA_ARTIFACT_NOT_FOUND" "ERROR"
+  exit 1
+fi
+
+cp "$JAVA_ARTIFACT_PATH" ./app.jar
 
 JAVA_EXIT_CODE=0
 
