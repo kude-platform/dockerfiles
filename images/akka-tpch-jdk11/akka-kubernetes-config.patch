@@ -1,16 +1,63 @@
-diff --git a/src/main/java/de/ddm/actors/Guardian.java b/src/main/java/de/ddm/actors/Guardian.java
-index 2a3d378..6ba6db7 100644
---- a/src/main/java/de/ddm/actors/Guardian.java
-+++ b/src/main/java/de/ddm/actors/Guardian.java
-@@ -68,3 +68,3 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
+diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
+index 5592a53..f4138ad 100644
+--- a/src/main/java/de/ddm/Main.java
++++ b/src/main/java/de/ddm/Main.java
+@@ -25,5 +25,2 @@ public class Main {
 
--		this.reaper = context.spawn(Reaper.create(), Reaper.DEFAULT_NAME);
-+		de.ddm.singletons.ReaperSingleton.set(context.spawn(Reaper.create(), Reaper.DEFAULT_NAME));
- 		this.master = this.isMaster() ? context.spawn(Master.create(), Master.DEFAULT_NAME) : null;
-@@ -90,3 +90,2 @@ public class Guardian extends AbstractBehavior<Guardian.Message> {
-
--	private final ActorRef<Reaper.Message> reaper;
- 	private ActorRef<Master.Message> master;
+-			waitForInput(">>> Press ENTER to exit <<<");
+-
+-			guardian.tell(new Guardian.ShutdownMessage());
+ 		}
+diff --git a/src/main/java/de/ddm/actors/AbstractBehavior.java b/src/main/java/de/ddm/actors/AbstractBehavior.java
+new file mode 100644
+index 0000000..c90ce19
+--- /dev/null
++++ b/src/main/java/de/ddm/actors/AbstractBehavior.java
+@@ -0,0 +1,28 @@
++package de.ddm.actors;
++
++import akka.actor.typed.javadsl.ActorContext;
++
++/**
++ * To be removed, once issue is fixed in base code
++ * @param <T>
++ */
++public abstract class AbstractBehavior<T> extends akka.actor.typed.javadsl.AbstractBehavior<T> {
++
++    public AbstractBehavior(ActorContext<T> context) {
++        super(context);
++        try {
++            if(context.getSelf() == null){
++                System.out.println("Context self is null, sleeping for a second to workaround lazy initialization");
++                Thread.sleep(1000); // Sleep for a second to workaround context.getSelf() returning null
++            } else if (de.ddm.singletons.ReaperSingleton.get() == null) {
++                System.out.println("Reaper is null, sleeping for a second to workaround lazy initialization");
++                Thread.sleep(1000); // Sleep for a second to workaround ReaperSingleton.get() returning null
++            } else {
++                System.out.println("Worker actor created with path: " + context.getSelf().path().toString());
++            }
++        } catch (InterruptedException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++}
+diff --git a/src/main/java/de/ddm/actors/Master.java b/src/main/java/de/ddm/actors/Master.java
+index 8fa9176..7c73cb2 100644
+--- a/src/main/java/de/ddm/actors/Master.java
++++ b/src/main/java/de/ddm/actors/Master.java
+@@ -5,3 +5,2 @@ import akka.actor.typed.Behavior;
+ import akka.actor.typed.DispatcherSelector;
+-import akka.actor.typed.javadsl.AbstractBehavior;
+ import akka.actor.typed.javadsl.ActorContext;
+diff --git a/src/main/java/de/ddm/actors/Worker.java b/src/main/java/de/ddm/actors/Worker.java
+index a3584c8..0508945 100644
+--- a/src/main/java/de/ddm/actors/Worker.java
++++ b/src/main/java/de/ddm/actors/Worker.java
+@@ -5,3 +5,2 @@ import akka.actor.typed.Behavior;
+ import akka.actor.typed.DispatcherSelector;
+-import akka.actor.typed.javadsl.AbstractBehavior;
+ import akka.actor.typed.javadsl.ActorContext;
 diff --git a/src/main/resources/application.conf b/src/main/resources/application.conf
 index fb1072e..7710f3a 100644
 --- a/src/main/resources/application.conf
