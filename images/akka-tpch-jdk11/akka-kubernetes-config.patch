@@ -1,13 +1,3 @@
-diff --git a/src/main/java/de/ddm/Main.java b/src/main/java/de/ddm/Main.java
-index 5592a53..f4138ad 100644
---- a/src/main/java/de/ddm/Main.java
-+++ b/src/main/java/de/ddm/Main.java
-@@ -25,5 +25,2 @@ public class Main {
-
--			waitForInput(">>> Press ENTER to exit <<<");
--
--			guardian.tell(new Guardian.ShutdownMessage());
- 		}
 diff --git a/src/main/java/de/ddm/actors/AbstractBehavior.java b/src/main/java/de/ddm/actors/AbstractBehavior.java
 new file mode 100644
 index 0000000..c90ce19
@@ -65,4 +55,4 @@ index fb1072e..7710f3a 100644
 @@ -104,2 +104,3 @@ akka {
    logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
 +  logger-startup-timeout = "60s"
-
+ 
