@@ -4,6 +4,10 @@ pidOfCurrentProcess=0
 
 function finish {
     echo "Received signal, trying to publish logs, results, and exit"
+    if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
+      echo "Publishing results, first attempt"
+      curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
+    fi
     if [ $pidOfCurrentProcess -ne 0 ]; then
         echo "Killing process $pidOfCurrentProcess"
         kill -SIGTERM $pidOfCurrentProcess
@@ -11,6 +15,7 @@ function finish {
     fi
     publishLogs
     if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
+      echo "Publishing results, second attempt"
       curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
     fi
     exit 0
