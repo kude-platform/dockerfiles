@@ -134,50 +134,32 @@ if [ "$APPLY_PATCH" = true ]; then
   patch -p1 -l -f < /tmp/app/akka-kubernetes-config.patch
 fi
 
-echo "Building project, logs will be available at /tmp/app/mvn.log"
-SECONDS=0
-if [ "$OFFLINE_MODE" = true ]; then
-  mvn -o install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
-else
-  mvn install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
-fi
-mvnBuildDuration=$SECONDS
+n=0
+until [ $n -ge 20 ]
+do
+  echo "Building project, attempt $n logs will be available at /tmp/app/mvn.log"
+  SECONDS=0
+  if [ "$OFFLINE_MODE" = true ]; then
+    mvn -o install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
+  else
+    mvn install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
+  fi
+  mvnBuildDuration=$SECONDS
 
-pidOfCurrentProcess=$!
-echo "Maven install pid is $pidOfCurrentProcess"
-wait "$pidOfCurrentProcess"
+  pidOfCurrentProcess=$!
+  echo "Maven install pid is $pidOfCurrentProcess"
+  wait "$pidOfCurrentProcess"
+  mavenExitCode=$?
 
-if [ $? -ne 0 ]; then
-
-  # try again without patched changes
-  if [ "$APPLY_PATCH" = true ]; then
-    git reset --hard
-
-    echo "Building project without patch, logs will be available at /tmp/app/mvn.log"
-
-    if [ "$OFFLINE_MODE" = true ]; then
-      mvn -o install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
-    else
-      mvn install $ADDITIONAL_MAVEN_ARGS $@ &> ./mvn.log &
-    fi
-
-    pidOfCurrentProcess=$!
-    echo "Maven install pid is $pidOfCurrentProcess"
-    wait "$pidOfCurrentProcess"
-    MAVEN_EXIT_CODE=$?
-
-    curl -X POST -F "file=@./mvn.log" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
-
-    if [ $MAVEN_EXIT_CODE -eq 0 ]; then
-      publishEvents "MVN_BUILD_FAILED_WITH_PATCH" "ERROR"
-      exit 1
-    else
-      publishEvents "MVN_BUILD_FAILED" "ERROR"
-      exit 1
-    fi
-
+  if [ $mavenExitCode -eq 0 ]; then
+    break
   fi
 
+  n=$[$n+1]
+  sleep 1
+done
+
+if [ $mavenExitCode -ne 0 ]; then
   echo "Maven build failed"
   publishEvents "MVN_BUILD_FAILED" "ERROR"
   exit 1
