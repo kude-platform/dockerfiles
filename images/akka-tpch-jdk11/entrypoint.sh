@@ -77,10 +77,30 @@ if [ -z "$POD_IP" ]; then
   exit 1
 fi
 
-if [ -z "$GIT_BRANCH" ]; then
-  git clone "$GIT_URL" ./source
-else
-  git clone -b "$GIT_BRANCH" --single-branch "$GIT_URL" ./source
+n=0
+until [ $n -ge 20 ]
+do
+  echo "Cloning the project, attempt $n"
+
+  if [ -z "$GIT_BRANCH" ]; then
+    git clone "$GIT_URL" ./source
+  else
+    git clone -b "$GIT_BRANCH" --single-branch "$GIT_URL" ./source
+  fi
+
+  gitCloneExitCode=$?
+  if [ $gitCloneExitCode -eq 0 ]; then
+    break
+  fi
+
+  n=$[$n+1]
+  sleep 1
+done
+
+if [ $gitCloneExitCode -ne 0 ]; then
+  echo "Failed to clone the project"
+  publishEvents "GIT_CLONE_FAILED" "FATAL"
+  exit 1
 fi
 
 pom_path=/tmp/app/source/pom.xml
