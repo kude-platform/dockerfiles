@@ -13,7 +13,7 @@ Content-Type: application/json
     "container_image":"docker.io/library/busybox:latest"}},
   {"date":1730547081.929952,"time":"2024-11-02T12:31:21.929951752+01:00",
     "stream":"stdout","_p":"F",
-    "log":"hello NPE",
+    "log":"hello TestException",
     "kubernetes":{"pod_name":"ddm-akka","namespace_name":"default",
       "pod_id":"78686c19-c8dd-47ad-a244-c4e263cefcaa","labels":{"run":"ddm-akka"},
       "host":"pi-master","container_name":"ddm-akka",

@@ -47,17 +47,21 @@ type Kubernetes struct {
 }
 
 type EventDefinition struct {
-	Type      string   `json:"type"`
-	Patterns  []string `json:"patterns"`
-	Level     string   `json:"level"`
+	Type     string   `json:"type"`
+	Patterns []string `json:"patterns"`
+	Level    string   `json:"level"`
 }
 
 var eventDefinitions []EventDefinition
 
+var genericExceptionPatterns = []string{
+	"Exception", "Error", "error", "exception", "fail", "Fail", "Failed", "failed",
+}
+
 type EvaluationEvent struct {
-	EvaluationId string                 `json:"evaluationId"`
-	Index        string                 `json:"index"`
-	Events []EventDefinition `json:"events"`
+	EvaluationId string            `json:"evaluationId"`
+	Index        string            `json:"index"`
+	Events       []EventDefinition `json:"events"`
 }
 
 func ingestLogFiles(_ http.ResponseWriter, req *http.Request) {
@@ -110,7 +114,7 @@ func analyzeLogEntries(logEntries []LogEntry) {
 		event := EvaluationEvent{
 			EvaluationId: logEntries[0].Kubernetes.Labels["evaluation-id"],
 			Index:        logEntries[0].Kubernetes.Labels["batch.kubernetes.io/job-completion-index"],
-			Events: events,
+			Events:       events,
 		}
 		eventJson, err := json.Marshal(event)
 		log.Printf("Event: %s", eventJson)
@@ -136,6 +140,21 @@ func categorizeLog(log string) (response EventDefinition, foundCategory bool) {
 			}
 		}
 	}
+
+	for _, keyword := range genericExceptionPatterns {
+		if !strings.Contains(log, keyword) {
+			continue
+		}
+
+		for _, word := range strings.Fields(log) {
+			if !strings.Contains(word, keyword) {
+				continue
+			}
+			return EventDefinition{Type: word, Patterns: []string{word}, Level: "ERROR"}, true
+		}
+
+	}
+
 	return EventDefinition{}, false
 }
 
@@ -165,9 +184,20 @@ func updateLogMessageEventDefinitions() {
 	log.Printf("Updated log event definitions: %s", eventDefinitions)
 }
 
+func initializeGenericExceptionPatterns() {
+	if os.Getenv("GENERIC_EXCEPTION_PATTERNS") != "" {
+		log.Printf("Using generic exception patterns: %s", os.Getenv("GENERIC_EXCEPTION_PATTERNS"))
+		genericExceptionPatterns = strings.Split(os.Getenv("GENERIC_EXCEPTION_PATTERNS"), ",")
+	} else {
+		log.Printf("Using default generic exception patterns: %s", genericExceptionPatterns)
+	}
+}
+
 func main() {
 	http.HandleFunc("/ingest/logs", ingestLogs)
 	http.HandleFunc("/ingest/logfiles", ingestLogFiles)
+
+	initializeGenericExceptionPatterns()
 
 	go func() {
 		for range time.Tick(time.Second * 30) {
