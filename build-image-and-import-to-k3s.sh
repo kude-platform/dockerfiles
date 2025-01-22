@@ -13,8 +13,7 @@ then
     continue
 fi
 
-#sudo k3s ctr image list -q | grep registry.local/${name} | xargs sudo k3s ctr image del
-#sudo k3s ctr image list -q | grep registry.local/${name} | xargs sudo docker rmi
+sudo k3s ctr image list -q | grep registry.local/${name} | xargs sudo k3s ctr image del
 
 docker build --no-cache -t "${fqi}" "${dir}"
 #docker build -t "${fqi}" "${dir}"
@@ -25,3 +24,5 @@ then
 else
     echo "k3s not found, skipping image import of ${fqi}"
 fi
+
+sudo docker image prune -a -f
