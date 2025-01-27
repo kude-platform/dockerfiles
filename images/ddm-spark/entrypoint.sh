@@ -31,10 +31,11 @@ else
   echo "Starting spark as worker"
   export SPARK_MODE="worker"
   export SPARK_MASTER_URL="$JOB_NAME-0.$SVC_NAME:$masterPort"
-  /opt/bitnami/scripts/spark/entrypoint.sh /opt/bitnami/scripts/spark/run.sh
+  /opt/bitnami/scripts/spark/entrypoint.sh /opt/bitnami/scripts/spark/run.sh &
 
-  # TODO: remove this sleep and wait until master is done
-  sleep 100000000
+  echo "Started spark as worker, now waiting for stop signal"
+  echo -e "HTTP/1.1 200 OK\n\n" | nc -l -p 8089 -q 1
+  exit 0
 fi
 
 if [ "$JOB_COMPLETION_INDEX" -ne 0 ]; then
@@ -107,3 +108,12 @@ duration=$SECONDS
 
 echo "Job completed in $duration seconds"
 publishEvents "JOB_COMPLETED" "INFO" $duration
+
+for i in $(seq 1 $NUMBER_OF_REPLICAS) # TODO calculate NUMBER_OF_REPLICAS-1, because we are not stopping the master
+do
+  if [ "$i" -eq 0 ]; then
+    continue
+  fi
+  echo "Stopping worker $i"
+  curl -X GET "$JOB_NAME-$i.$SVC_NAME:8089"
+done
