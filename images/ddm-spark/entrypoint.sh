@@ -27,6 +27,7 @@ fi
 if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   echo "Starting spark as master"
   export SPARK_MODE="master"
+  export SPARK_DRIVER_BIND_ADDRESS="$JOB_NAME-0.$SVC_NAME"
 else
   echo "Starting spark as worker"
   export SPARK_MODE="worker"
