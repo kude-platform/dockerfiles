@@ -113,11 +113,12 @@ duration=$SECONDS
 echo "Job completed in $duration seconds"
 publishEvents "JOB_COMPLETED" "INFO" $duration
 
-for i in $(seq 1 $NUMBER_OF_REPLICAS) # TODO calculate NUMBER_OF_REPLICAS-1, because we are not stopping the master
+if [ "$JOB_COMPLETION_INDEX" -eq 0 ] && [ -n "$RESULTS_ENDPOINT" ]; then
+  curl -X POST -F "file=@./results.txt" "$RESULTS_ENDPOINT/$EVALUATION_ID"
+fi
+
+for i in $(seq 1 $(($NUMBER_OF_REPLICAS - 1)))
 do
-  if [ "$i" -eq 0 ]; then
-    continue
-  fi
   echo "Stopping worker $i"
   curl -X GET "$JOB_NAME-$i.$SVC_NAME:8091"
 done
