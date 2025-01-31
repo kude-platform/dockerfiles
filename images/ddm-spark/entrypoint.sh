@@ -115,5 +115,5 @@ do
     continue
   fi
   echo "Stopping worker $i"
-  curl -X GET "$JOB_NAME-$i.$SVC_NAME:8089"
+  curl -X GET "$JOB_NAME-$i.$SVC_NAME:8091"
 done
