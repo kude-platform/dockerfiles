@@ -30,6 +30,7 @@ if [ "$JOB_COMPLETION_INDEX" -eq 0 ]; then
   export SPARK_DRIVER_BIND_ADDRESS="$JOB_NAME-0.$SVC_NAME"
   export SPARK_DRIVER_HOST="$JOB_NAME-0.$SVC_NAME"
   export SPARK_LOCAL_IP="$JOB_NAME-0.$SVC_NAME"
+  export SPARK_MASTER_HOST="$JOB_NAME-0.$SVC_NAME"
 else
   echo "Starting spark as worker"
   export SPARK_MODE="worker"
