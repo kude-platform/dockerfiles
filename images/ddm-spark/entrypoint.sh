@@ -34,7 +34,7 @@ else
   /opt/bitnami/scripts/spark/entrypoint.sh /opt/bitnami/scripts/spark/run.sh &
 
   echo "Started spark as worker, now waiting for stop signal"
-  echo -e "HTTP/1.1 200 OK\n\n" | nc -l -p 8089 -q 1
+  echo -e "HTTP/1.1 200 OK\n\n" | nc -l -p 8091 -q 1
   exit 0
 fi
 
