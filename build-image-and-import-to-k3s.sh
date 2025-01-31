@@ -25,4 +25,4 @@ else
     echo "k3s not found, skipping image import of ${fqi}"
 fi
 
-sudo docker image prune -a -f
+#sudo docker image prune -a -f
