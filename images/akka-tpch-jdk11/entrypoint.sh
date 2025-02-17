@@ -232,6 +232,10 @@ else
   JAVA_EXIT_CODE=$?
   duration=$SECONDS
 
+  # truncate the service.log to 10MB
+  # truncate -s 10M ./service.log
+  # TODO: test this
+
   zip logs.zip ./service.log ./mvn.log
   if [ -n "$LOGS_ENDPOINT" ]; then
     curl -X POST -F "file=@./logs.zip" "$LOGS_ENDPOINT/$EVALUATION_ID/$JOB_COMPLETION_INDEX"
