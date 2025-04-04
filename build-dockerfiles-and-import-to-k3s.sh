@@ -9,11 +9,11 @@ do
     fqi="registry.local/${name}:${version}"
     echo "Building ${fqi}"
 
-    if k3s ctr image list -q | grep -q "${fqi}"
-    then
-      echo "Image ${fqi} already exists, skipping"
-      continue
-    fi
+    # if k3s ctr image list -q | grep -q "${fqi}"
+    # then
+    #   echo "Image ${fqi} already exists, skipping"
+    #   continue
+    # fi
 
     sudo k3s ctr image list -q | grep registry.local/${name} | xargs sudo k3s ctr image del
 
