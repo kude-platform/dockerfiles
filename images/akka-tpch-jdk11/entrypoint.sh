@@ -130,10 +130,6 @@ if [ -f ./results.txt ] && [ -s ./results.txt ]; then
   rm -f ./results.txt
 fi
 
-if [ "$APPLY_PATCH" = true ]; then
-  patch -p1 -l -f < /tmp/app/akka-kubernetes-config.patch
-fi
-
 n=0
 until [ $n -ge 20 ]
 do
