@@ -1,4 +1,4 @@
-FROM bitnami/java:21-debian-12 as builder
+FROM eclipse-temurin:21-jdk as builder
 RUN apt-get update && apt-get install -y git
 
 RUN git clone https://github.com/kude-platform/evaluation-engine /tmp/evaluation-engine
@@ -6,7 +6,7 @@ RUN git clone https://github.com/kude-platform/evaluation-engine /tmp/evaluation
 WORKDIR /tmp/evaluation-engine
 RUN ./gradlew clean build -Pvaadin.productionMode -x test
 
-FROM bitnami/java:21-debian-12
+FROM eclipse-temurin:21-jre
 COPY --from=builder /tmp/evaluation-engine/build/libs/app.jar ./app.jar
 RUN mkdir -p ./helm/ddm-akka
 
