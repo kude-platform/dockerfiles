@@ -28,4 +28,4 @@ do
     fi
 done
 
-sudo docker image prune -a -f
+# sudo docker image prune -a -f
