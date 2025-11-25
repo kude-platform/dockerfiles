@@ -8,12 +8,17 @@ RUN rm apache-maven-3.9.11-bin.tar.gz
 ENV M2_HOME='/opt/apache-maven-3.9.11'
 ENV PATH="$M2_HOME/bin:$PATH"
 
-RUN apk --no-cache add git unzip zip curl bash envsubst patch\
-    && git clone https://github.com/kude-platform/template-projects-akka-kubernetes /tmp/template-projects-akka-build
+RUN apk --no-cache add git unzip zip curl bash envsubst patch
 
-WORKDIR /tmp/template-projects-akka-build
+# Building the template project to cache the maven dependencies is currently not possible, because the dependencies are not publicly accessible anymore
+# For the actual evaluation, we mount a maven config with a token into the container
 
-RUN mvn install -DskipTests
+# RUN apk --no-cache add git unzip zip curl bash envsubst patch\
+    # && git clone https://github.com/kude-platform/template-projects-akka-kubernetes /tmp/template-projects-akka-build
+
+# WORKDIR /tmp/template-projects-akka-build
+
+# RUN mvn install -DskipTests
 
 RUN mkdir -p /tmp/app
 WORKDIR /tmp/app
